@@ -1,119 +1,117 @@
-    Steps (Ubuntu 18.04) 
+    Steps (Ubuntu 18.04)
 
-        Some Ubuntu prelims 
+        Some Ubuntu prelims
 
-            https://askubuntu.com/questions/187888/what-is-the-correct-way-to-completely-remove-an-application 
+            https://askubuntu.com/questions/187888/what-is-the-correct-way-to-completely-remove-an-application
 
-         
 
-        This is to be converted into a script for Docker environment setup later on 
 
-        Setup ssh key – you are using the private one on your end 
+        This is to be converted into a script for Docker environment setup later on
 
-        sudo apt update; sudo apt upgrade; 
+        Setup ssh key – you are using the private one on your end
 
-        Install X11 (GUI) - only for VM instances, not for docker containers 
+        sudo apt update; sudo apt upgrade;
 
-            Sudo apt xorg 
+        Install X11 (GUI) - only for VM instances, not for docker containers
 
-            Install gdm3 – not really necessary (this is desktop GUI) 
+            Sudo apt xorg
 
-            Need to install virtual X11 for R 
+            Install gdm3 – not really necessary (this is desktop GUI)
 
-                https://unix.stackexchange.com/questions/31283/error-in-r-unable-to-open-connection-to-x11 
+            Need to install virtual X11 for R
 
-                    If you don't have any local X server, you can install the virtual framebuffer X11 server like said here: 
+                https://unix.stackexchange.com/questions/31283/error-in-r-unable-to-open-connection-to-x11
 
-                    Sudo apt-get install xvfb xauth xfonts-base 
+                    If you don't have any local X server, you can install the virtual framebuffer X11 server like said here:
 
-                    Then you can start a new instance like said here: 
+                    Sudo apt-get install xvfb xauth xfonts-base
 
-                    Xvfb :0 -ac -screen 0 1960x2000x24 & 
-                      
+                    Then you can start a new instance like said here:
 
-                    Then if your R is compiled with with-x configuration option (enabled by default), you should have X11 capability, and you just have to declare this in R: 
+                    Xvfb :0 -ac -screen 0 1960x2000x24 &
 
-                    Sys.setenv("DISPLAY"=":0") 
-                      
 
-             
+                    Then if your R is compiled with with-x configuration option (enabled by default), you should have X11 capability, and you just have to declare this in R:
 
-        Install emacs 
+                    Sys.setenv("DISPLAY"=":0")
 
-            Setup spacemacs for quick use 
 
-                Clone the spacemacs repo 
 
-                    https://github.com/syl20bnr/spacemacs 
 
-                    Then make it .emacs.d with a symlink 
+        Install emacs
 
-                Set up the right layers 
+            Setup spacemacs for quick use
 
-                    Copy .spacemacs file from arch home to wherever 
+                Clone the spacemacs repo
 
-                    Also copy .screenrc 
+                    https://github.com/syl20bnr/spacemacs
 
-                 
+                    Then make it .emacs.d with a symlink
 
-        Mount disk space with data/ where writing will occur 
+                Set up the right layers
 
-            Install sshfs 
+                    Copy .spacemacs file from arch home to wherever
 
-            Add mount_remotes.sh and unmount_remotes.sh 
+                    Also copy .screenrc
 
-        Install necessary stuff 
 
-            R-base 
 
-                First install libopenblas-base!! 
+        Mount disk space with data/ where writing will occur
 
-                    More info on BLAS/LAPACK in Ubuntu 
+            Install sshfs
 
-                        https://wiki.debian.org/DebianScience/LinearAlgebraLibraries 
+            Add mount_remotes.sh and unmount_remotes.sh
 
-                     
+        Install necessary stuff
 
-                    Actually it did not work with openblas – for some reason the matrix computations were quite slow!! 
+            R-base
 
-                        Need to figure this out at some point!! 
+                First install libopenblas-base!!
 
-                     
+                    More info on BLAS/LAPACK in Ubuntu
 
-                    Switched to ATLAS – that worked reasonably fast (similar to what is on plaza, but using Rcpp in Spicer) 
+                        https://wiki.debian.org/DebianScience/LinearAlgebraLibraries
 
-                        Install libatlas-base-dev,libatlas-cpp-0.6-dev 
 
-                    Mkl produces very similar results (just a smidgeon faster than ATLAS) 
 
-                        Found a great way to install mkl 
+                    Actually it did not work with openblas – for some reason the matrix computations were quite slow!!
 
-                            https://github.com/eddelbuettel/mkl4deb 
+                        Need to figure this out at some point!!
 
-                            They should make that into an aur arch package 
 
-                    You can use sudo update-alternatives --config libblas.so.3-x86_64-linux-gnu  
 
-                To switch between alternative BLAS/LAPACK implementations 
+                    Switched to ATLAS – that worked reasonably fast (similar to what is on plaza, but using Rcpp in Spicer)
 
-                    See https://www.r-bloggers.com/for-faster-r-use-openblas-instead-better-than-atlas-trivial-to-switch-to-on-ubuntu/ 
+                        Install libatlas-base-dev,libatlas-cpp-0.6-dev
 
-                    Need to update it for libblas.so-x86_64-linux-gnu,libblas.so.3-x86_64-linux-gnu,liblapack.so.3-x86_64-linux-gnu,liblapack.so-x86_64-linux-gnu 
+                    Mkl produces very similar results (just a smidgeon faster than ATLAS)
 
-                Also need to install libcurl4-openssl-dev for curl R package later on!! 
+                        Found a great way to install mkl
 
-                Need libssl-dev for devtools R package as well 
+                            https://github.com/eddelbuettel/mkl4deb
 
-                Libxml2-dev needed for mlr package 
+                            They should make that into an aur arch package
 
-            R packages 
+                    You can use sudo update-alternatives --config libblas.so.3-x86_64-linux-gnu
 
-                c("foreach","doParallel","ranger","plyr","abind","ROCR","caret","proxy","purrr","pracma","fastmatch","devtools","mlr","e1071","igraph") 
+                To switch between alternative BLAS/LAPACK implementations
 
-                Still create a personal library in ~ 
+                    See https://www.r-bloggers.com/for-faster-r-use-openblas-instead-better-than-atlas-trivial-to-switch-to-on-ubuntu/
 
-                    First time you use install.packages, it will ask you and create a default library 
+                    Need to update it for libblas.so-x86_64-linux-gnu,libblas.so.3-x86_64-linux-gnu,liblapack.so.3-x86_64-linux-gnu,liblapack.so-x86_64-linux-gnu
 
-                Install Similarity from my fork  and ComplexHeatmap from bioconductor 
+                Also need to install libcurl4-openssl-dev for curl R package later on!!
 
-           
+                Need libssl-dev for devtools R package as well
+
+                libxml2-dev needed for mlr package
+
+            R packages
+
+                c("foreach","doParallel","ranger","plyr","abind","ROCR","caret","proxy","purrr","pracma","fastmatch","devtools","mlr","e1071","igraph","circlize","RColorBrewer")
+
+                Still create a personal library in ~
+
+                    First time you use install.packages, it will ask you and create a default library
+
+                Install Similarity from my fork  and ComplexHeatmap from bioconductor
