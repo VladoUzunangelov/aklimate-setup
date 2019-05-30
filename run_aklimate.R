@@ -70,6 +70,9 @@ p4 <- readSetList(paste0(homeDir,"/mkl/data/feature_sets/msigdb_c2_c5_no_c2_cp.t
 pathways <- c(p1,p2,p3,p4) 
 pathways <- pathways[sapply(pathways,length)<1000]
 
+##probably a good idea to sanitize the name a bit
+##names(pathways)<-gsub('[^\\w\\s]',"_",names(pathways),perl=TRUE)
+
 labels <-as.matrix(read.delim("../labels.tsv",check.names=F,stringsAsFactors=F,header=F,row.names=1))
 labels<-factor(labels[,1])
 
@@ -115,11 +118,11 @@ res<- foreach(i=iter(tasks))%do% {
     return(res)
 }
 
-results<-worker.f(tasks)
-names(results)<-tasks
+results<-worker.f(tasks[1:25])
+names(results)<-tasks[1:25]
 
 results <- unlist(results)
 
-names(results) <- as.character(tasks)
+names(results) <- as.character(tasks[1:25])
 
 write.df(data.frame(bacc=results),"split",paste0(workDir,"/splits_balanced_accuracy.tab"))
