@@ -23,3 +23,7 @@ apt install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 # required for Similarity R package
 apt install -y libtbb-dev
 # export tbb_os=linux
+
+# mysql
+apt install -y libmariadbclient-dev
+#apt install -y mysql-common

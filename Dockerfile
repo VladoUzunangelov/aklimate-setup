@@ -7,6 +7,8 @@ ENV tbb_os linux
 
 COPY ./dockerfile_scripts/install_apt_stuff.sh /
 COPY ./dockerfile_scripts/install_r_stuff.sh /
+COPY ./run_aklimate.R /
+COPY ../junkle/*.R /
 
 RUN ["bash", "install_apt_stuff.sh"]
 RUN ["bash", "install_r_stuff.sh"]
