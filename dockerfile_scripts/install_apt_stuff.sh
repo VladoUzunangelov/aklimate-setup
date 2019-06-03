@@ -12,6 +12,9 @@ apt autoremove -y
 # to avoid input prompt for package tzdata
 DEBIAN_FRONTEND='noninteractive' apt install -y r-base
 
+# to avoid input prompt for Configuring keyboard-configuration
+DEBIAN_FRONTEND=noninteractive apt-get install keyboard-configuration
+
 apt-get install -y xorg xvfb xauth xfonts-base
 
 # install INTEL MKL library
