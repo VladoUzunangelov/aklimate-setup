@@ -13,10 +13,11 @@ COPY ./dockerfile_scripts /dockerfile_scripts
 # https://github.com/VladoUzunangelov/Spicer
 # https://github.com/VladoUzunangelov/tcga_scripts
 
-RUN ["mkdir", "-p", "/aklimate_lib/"]
-COPY ./aklimate_lib /aklimate_lib
+#RUN ["mkdir", "-p", "/aklimate_lib/"]
+#COPY ./aklimate_lib /aklimate_lib
 
-RUN ["ln", "-s", "/aklimate_lib/repos", "/root/repos"]
+#RUN ["ln", "-s", "/aklimate_lib/repos", "/root/repos"]
+RUN ["ln", "-s", "/data/repos", "/root/repos"]
 
 RUN ["bash", "/dockerfile_scripts/install_apt_stuff.sh"]
 RUN ["bash", "/dockerfile_scripts/install_r_stuff.sh"]
