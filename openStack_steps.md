@@ -40,12 +40,12 @@ sudo apt-get install -y xorg xvfb xauth xfonts-base
 
 6. install other various system package dependencies for R packages in the subsequent steps
     ```
-    sudo apt install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+    sudo apt install -y libcurl4-openssl-dev libssl-dev libxml2-dev libmariadbclient-dev
     ```
 
 7. in R, install many packages
 ```
-install.packages(c("foreach","doParallel","ranger","plyr","abind","ROCR","caret","proxy","purrr","pracma","fastmatch","devtools","mlr","e1071","igraph","circlize","RColorBrewer"))
+install.packages(c("foreach","doParallel","ranger","plyr","abind","ROCR","caret","proxy","purrr","pracma","fastmatch","devtools","mlr","e1071","igraph","circlize","RColorBrewer","RMySQL"))
 ```
 
 8. in R, install bioconductor following these [instructions](https://bioconductor.org/install/).
@@ -56,7 +56,7 @@ source("https://bioconductor.org/biocLite.R")
 
 9. in R, install ComplexHeatmap package
 ```
-BiocInstaller::biocLite(c("ComplexHeatmap"))
+BiocInstaller::biocLite(c("ComplexHeatmap","FDb.InfiniumMethylation.hg19"))
 ```
 
 10. Install Vlado's forked Similarity R package.
