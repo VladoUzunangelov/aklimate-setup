@@ -52,8 +52,11 @@ p4 <- readSetList(paste0(homeDir, "/msigdb_c2_c5_no_c2_cp.tab"))
 pathways <- c(p1, p2, p3, p4)
 pathways <- pathways[sapply(pathways, length) < 1000]
 
+
+message("sanitize pathway names")
+
 ## probably a good idea to sanitize the name a bit
-## names(pathways)<-gsub('[^\\w\\s]','_',names(pathways),perl=TRUE)
+names(pathways) <- gsub("[^\\w\\s]", "_", names(pathways), perl = TRUE)
 
 
 
