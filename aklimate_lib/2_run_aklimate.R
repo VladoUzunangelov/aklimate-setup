@@ -1,7 +1,51 @@
 #!/usr/bin/env Rscript
+# vuzunangelov & chrisw 20190606
 
-
-## To be run on architeuthis in /home/ubuntu/projects/THYM_AKLIMATE
+## Run the commands in this script after those in 1_load_aklimate_libs.R.
+## example directory tree:
+# .
+# ├── 1_load_aklimate_libs.R
+# ├── 2_run_aklimate.R
+# ├── data
+# │   ├── combined_matrix.tsv
+# │   └── cv_folds.tsv
+# ├── datatypes.tsv
+# ├── files.txt
+# ├── labels.tsv
+# ├── models
+# ├── p_store_files
+# │   ├── genesigdb_human.tab
+# │   ├── genomic_position_sets.listt
+# │   ├── msigdb_c2_c5_no_c2_cp.tab
+# │   └── pathcomm_pathways_cleaned
+# ├── repos
+# │   ├── junkle
+# │   │   ├── junkle.R
+# │   │   └── junkle-utils.R
+# │   ├── Spicer
+# │   │   ├── experimental
+# │   │   │   ├── Isomap.R
+# │   │   │   ├── SPARKLE.R
+# │   │   │   ├── Spicer-red.R
+# │   │   │   └── ToDo
+# │   │   ├── kernels
+# │   │   │   ├── CumulativeRBF.R
+# │   │   │   ├── CustomRBF.R
+# │   │   │   └── Kernels.R
+# │   │   ├── LICENSE
+# │   │   ├── prank
+# │   │   │   └── pRank.R
+# │   │   ├── README.md
+# │   │   ├── Spicer-classify.R
+# │   │   ├── Spicer-funcs.cpp
+# │   │   ├── Spicer-funcs.R
+# │   │   ├── Spicer.R
+# │   │   ├── ToDo
+# │   │   └── utils.R
+# │   └── tcga_scripts
+# │       └── utils.R
+# ├── run_aklimate.mak
+# └── samples.tsv
 
 # ncpus <- 14
 
@@ -13,7 +57,7 @@ message("load sample data")
 
 suffs <- list(nomir = c("MUTA", "CNVR", "METH", "GEXP"))
 
-dat <- read.delim("./data/THYM_20190424.tsv", header = T, row.names = 1, check.names = FALSE)
+dat <- read.delim("./data/combined_matrix.tsv", header = T, row.names = 1, check.names = FALSE)
 dat <- dat[, -1]
 
 
@@ -39,7 +83,7 @@ colnames(dat) <- updated.names
 
 message("load pathways")
 
-homeDir <- "./remote/p_store_files"
+homeDir <- "./p_store_files"
 workDir <- "./models/"
 
 
@@ -69,7 +113,7 @@ labels <- factor(labels[, 1])
 
 message("load CV fold splits")
 
-splits <- as.matrix(read.delim("./data/THYM_CVfolds_5FOLD_20190328.tsv", check.names = F,
+splits <- as.matrix(read.delim("./data/cv_folds.tsv", check.names = F,
   stringsAsFactors = F, header = TRUE, row.names = 1))
 splits <- splits[, -1]
 

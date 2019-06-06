@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
+# vuzunangelov & chrisw 20190606
 
-
-## To be run on architeuthis in /home/ubuntu/projects/THYM_AKLIMATE
+## check 2_run_aklimate.R for example directory structure
 
 message("loading libraries")
 
@@ -17,11 +17,11 @@ library(dplyr)
 library(caret)
 library(ROCR)
 ## library(mlr)
-source("/aklimate_lib/repos/tcga_scripts/utils.R", chdir = TRUE)
-source("/aklimate_lib/repos/junkle/junkle-utils.R", chdir = TRUE)
-source("/aklimate_lib/repos/junkle/junkle.R", chdir = TRUE)
-source('/aklimate_lib/repos/Spicer/Spicer.R',chdir=TRUE)
-source('/aklimate_lib/repos/Spicer/Spicer-classify.R',chdir=TRUE)
+source("/data/repos/tcga_scripts/utils.R", chdir = TRUE)
+source("/data/repos/junkle/junkle-utils.R", chdir = TRUE)
+source("/data/repos/junkle/junkle.R", chdir = TRUE)
+source('/data/repos/Spicer/Spicer.R',chdir=TRUE)
+source('/data/repos/Spicer/Spicer-classify.R',chdir=TRUE)
 
 ## need to install mySQL first sudo apt-get install libmariadbclient-dev then in R
 ## source('https://bioconductor.org/biocLite.R')
