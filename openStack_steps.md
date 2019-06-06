@@ -73,3 +73,6 @@ BiocInstaller::biocLite(c("ComplexHeatmap","FDb.InfiniumMethylation.hg19"))
     ```
     devtools::install_github("VladoUzunangelov/similarity")
     ```
+
+11. We'll also need to install Vlado's tcga_scripts, Spicer, and junkle. These will be provided as R packages in the near future.
+
