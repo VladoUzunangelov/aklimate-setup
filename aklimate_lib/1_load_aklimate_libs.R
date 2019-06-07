@@ -6,7 +6,7 @@
 message("loading libraries")
 
 ncpus <- NUMBER_OF_CPUS_TO_USE
-stopifnot(check.numeric(ncpus, only.integer=TRUE))
+stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
 
 library(doParallel)
 library(foreach)
@@ -22,8 +22,8 @@ library(ROCR)
 source("/data/repos/tcga_scripts/utils.R", chdir = TRUE)
 source("/data/repos/junkle/junkle-utils.R", chdir = TRUE)
 source("/data/repos/junkle/junkle.R", chdir = TRUE)
-source('/data/repos/Spicer/Spicer.R',chdir=TRUE)
-source('/data/repos/Spicer/Spicer-classify.R',chdir=TRUE)
+source("/data/repos/Spicer/Spicer.R", chdir = TRUE)
+source("/data/repos/Spicer/Spicer-classify.R", chdir = TRUE)
 
 ## need to install mySQL first sudo apt-get install libmariadbclient-dev then in R
 ## source('https://bioconductor.org/biocLite.R')

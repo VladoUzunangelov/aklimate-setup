@@ -47,8 +47,6 @@
 # ├── run_aklimate.mak
 # └── samples.tsv
 
-# ncpus <- 14
-
 message("load sample data")
 
 ## MIR is also there - about 800 MIRs right now probably best to not include them
@@ -172,8 +170,12 @@ worker.f <- function(tasks) {
 
 message("call worker on tasks")
 
+# EDIT THIS BEFORE RUNNING !
 run_tasks <- tasks[1:25]
+stopifnot(length(run_tasks) > 0)
+message(paste(length(run_tasks), " tasks to run"))
 message(run_tasks)
+
 
 # stopifnot(FALSE)
 
