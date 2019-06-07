@@ -5,7 +5,9 @@
 
 message("loading libraries")
 
-ncpus <- 14
+ncpus <- NUMBER_OF_CPUS_TO_USE
+stopifnot(check.numeric(ncpus, only.integer=TRUE))
+
 library(doParallel)
 library(foreach)
 ## library(doRNG)
