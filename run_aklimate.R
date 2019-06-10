@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 
+##copyright (c) 2019 Vlado Uzunangelov
 
 ##To be run on 10.50.100.33
 ## in /home/ubuntu/projects/THYM_AKLIMATE/scripts

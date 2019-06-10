@@ -1,4 +1,7 @@
 #!/usr/bin/env Rscript
+
+##copyright (c) 2019 Vlado Uzunangelov
+
 source("~/repos/junkle/junkle-utils.R",chdir=TRUE)
 dataDir <- "/pod/pstore/users/uzunangelov/mkl/data/tmp_awg/LIHC/"
 groups <- c("exp","mirna","methylation","mutation","cnv","cn_regions","lncrna")
