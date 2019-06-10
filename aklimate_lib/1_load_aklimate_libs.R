@@ -5,7 +5,7 @@
 
 message("loading libraries")
 
-ncpus <- 14
+ncpus <- NUMBER_OF_CPUS_TO_USE
 stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
 message("using ", ncpus, " CPUs")
 
