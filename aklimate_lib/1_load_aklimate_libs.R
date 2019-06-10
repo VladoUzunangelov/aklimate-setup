@@ -5,8 +5,9 @@
 
 message("loading libraries")
 
-ncpus <- NUMBER_OF_CPUS_TO_USE
+ncpus <- 14
 stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
+message("using ", ncpus, " CPUs")
 
 library(doParallel)
 library(foreach)

@@ -2,58 +2,16 @@
 # vuzunangelov & chrisw 20190606
 
 ## Run the commands in this script after those in 1_load_aklimate_libs.R.
-## example directory tree:
-# .
-# ├── 1_load_aklimate_libs.R
-# ├── 2_run_aklimate.R
-# ├── data
-# │   ├── combined_matrix.tsv
-# │   └── cv_folds.tsv
-# ├── datatypes.tsv
-# ├── files.txt
-# ├── labels.tsv
-# ├── models
-# ├── p_store_files
-# │   ├── genesigdb_human.tab
-# │   ├── genomic_position_sets.listt
-# │   ├── msigdb_c2_c5_no_c2_cp.tab
-# │   └── pathcomm_pathways_cleaned
-# ├── repos
-# │   ├── junkle
-# │   │   ├── junkle.R
-# │   │   └── junkle-utils.R
-# │   ├── Spicer
-# │   │   ├── experimental
-# │   │   │   ├── Isomap.R
-# │   │   │   ├── SPARKLE.R
-# │   │   │   ├── Spicer-red.R
-# │   │   │   └── ToDo
-# │   │   ├── kernels
-# │   │   │   ├── CumulativeRBF.R
-# │   │   │   ├── CustomRBF.R
-# │   │   │   └── Kernels.R
-# │   │   ├── LICENSE
-# │   │   ├── prank
-# │   │   │   └── pRank.R
-# │   │   ├── README.md
-# │   │   ├── Spicer-classify.R
-# │   │   ├── Spicer-funcs.cpp
-# │   │   ├── Spicer-funcs.R
-# │   │   ├── Spicer.R
-# │   │   ├── ToDo
-# │   │   └── utils.R
-# │   └── tcga_scripts
-# │       └── utils.R
-# ├── run_aklimate.mak
-# └── samples.tsv
+
+
 
 message("load sample data")
 
 ## MIR is also there - about 800 MIRs right now probably best to not include them
 ## - I have a scheme to indluce them by putting a MIR in every pathway that has
 ## one of its targets, but it didn't work well when I tested it
-
-suffs <- list(nomir = c("MUTA", "CNVR", "METH", "GEXP"))
+nomir = c("MUTA", "CNVR", "METH", "GEXP")
+suffs <- list(nomir)
 
 dat <- read.delim("./data/combined_matrix.tsv", header = T, row.names = 1, check.names = FALSE)
 dat <- dat[, -1]
@@ -78,12 +36,50 @@ updated.names <- foreach(i = iter(colnames(dat)), .combine = c) %dopar% {
 colnames(dat) <- updated.names
 
 
+message("filter out low expression features")
+# Theo has named all gene expression features with 'N:GEXP:'
+
+sampleIDs <- rownames(dat)
+exp_matrix <- dat[sampleIDs, grepl(paste0("N:GEXP:"), colnames(dat))]
+
+message(paste("number of features in input expression matrix", length(colnames(exp_matrix))))
+
+exp_means <- colMeans(exp_matrix)
+exp_sds <- apply(exp_matrix, 2, sd)
+
+## exclude genes that are in the bottom quartile by mean or sd
+exp_features_upper75_by_mean = names(exp_means)[exp_means > quantile(exp_means, probs = 0.25)]
+exp_features_upper75_by_sd = names(exp_sds)[exp_sds > quantile(exp_sds, probs = 0.25)]
+exp_all_features <- colnames(exp_matrix)
+exp_keep_features <- intersect(exp_features_upper75_by_mean, exp_features_upper75_by_sd)
+exp_drop_features <- setdiff(exp_all_features, exp_keep_features)
+
+full_keep_features <- setdiff(colnames(dat), exp_drop_features)
+
+message(paste("number of expression features to drop", length(exp_drop_features)))
+
+
+message(paste("number of features in full data matrix", length(colnames(dat))))
+dat <- dat[sampleIDs, full_keep_features]
+message(paste("number of features in new data matrix", length(colnames(dat))))
+
+
+
+message("quantize numeric datatypes")
+
+dat <- foreach(datatype_str = iter(nomir[!grepl("MUTA|CNVR", nomir)]), .combine = cbind) %do%
+  {
+    message(paste("quantize ", datatype_str))
+    quantize.data(dat[sampleIDs, grepl(paste0("N:", datatype_str, ":"), colnames(dat))],
+      nbr = 5, idx = sampleIDs)
+  }
+
+
 
 message("load pathways")
 
 homeDir <- "./p_store_files"
 workDir <- "./models/"
-
 
 p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned"))
 p1 <- p1[!grepl("[[:digit:]]_SMPDB$|Z_SMPDB$", names(p1))]
@@ -111,8 +107,8 @@ labels <- factor(labels[, 1])
 
 message("load CV fold splits")
 
-splits <- as.matrix(read.delim("./data/cv_folds.tsv", check.names = F,
-  stringsAsFactors = F, header = TRUE, row.names = 1))
+splits <- as.matrix(read.delim("./data/cv_folds.tsv", check.names = F, stringsAsFactors = F,
+  header = TRUE, row.names = 1))
 splits <- splits[, -1]
 
 
@@ -165,29 +161,3 @@ worker.f <- function(tasks) {
 
   return(res)
 }
-
-
-
-message("call worker on tasks")
-
-# EDIT THIS BEFORE RUNNING !
-run_tasks <- tasks[1:25]
-stopifnot(length(run_tasks) > 0)
-message(paste(length(run_tasks), " tasks to run"))
-message(run_tasks)
-
-
-# stopifnot(FALSE)
-
-results <- worker.f(run_tasks)
-names(results) <- run_tasks
-
-results <- unlist(results)
-
-names(results) <- as.character(run_tasks)
-
-
-
-message("write results")
-
-write.df(data.frame(bacc = results), "split", paste0(workDir, "/splits_balanced_accuracy.tab"))
