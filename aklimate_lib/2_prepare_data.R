@@ -74,7 +74,8 @@ dat <- foreach(datatype_str = iter(nomir[!grepl("MUTA|CNVR", nomir)]), .combine 
       nbr = 5, idx = sampleIDs)
   }
 
-
+# aklimate expects a dataframe, not a matrix
+dat <- as.data.frame(dat)
 
 message("load pathways")
 
