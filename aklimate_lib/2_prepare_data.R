@@ -82,8 +82,9 @@ message("load pathways")
 homeDir <- "./p_store_files"
 workDir <- "./models/"
 
-p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned"))
-p1 <- p1[!grepl("[[:digit:]]_SMPDB$|Z_SMPDB$", names(p1))]
+# p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned"))
+# p1 <- p1[!grepl("[[:digit:]]_SMPDB$|Z_SMPDB$", names(p1))]
+p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned_non_redundant_names.tsv"))
 p2 <- readSetList(paste0(homeDir, "/genomic_position_sets.listt"))
 p3 <- readSetList(paste0(homeDir, "/genesigdb_human.tab"))
 p4 <- readSetList(paste0(homeDir, "/msigdb_c2_c5_no_c2_cp.tab"))
