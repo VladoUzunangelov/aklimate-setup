@@ -58,6 +58,7 @@ full_keep_features <- setdiff(colnames(dat), exp_drop_features)
 
 message(paste("number of expression features to drop", length(exp_drop_features)))
 
+exp_matrix <- NULL
 
 message(paste("number of features in full data matrix", length(colnames(dat))))
 dat <- dat[sampleIDs, full_keep_features]
@@ -98,7 +99,7 @@ message("sanitize pathway names")
 ## probably a good idea to sanitize the name a bit
 names(pathways) <- gsub("[^\\w\\s]", "_", names(pathways), perl = TRUE)
 
-
+message(paste("number of pathways to use", length(names(pathways))))
 
 message("load labels")
 
