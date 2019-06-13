@@ -91,7 +91,8 @@ p3 <- readSetList(paste0(homeDir, "/genesigdb_human.tab"))
 p4 <- readSetList(paste0(homeDir, "/msigdb_c2_c5_no_c2_cp.tab"))
 
 pathways <- c(p1, p2, p3, p4)
-pathways <- pathways[sapply(pathways, length) < 1000]
+max_size_of_pathways <- 1000
+pathways <- pathways[sapply(pathways, length) < max_size_of_pathways]
 
 
 message("sanitize pathway names")
