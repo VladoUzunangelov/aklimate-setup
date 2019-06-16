@@ -3,7 +3,7 @@
 
 ## Run the commands in this script after those in 1_load_aklimate_libs.R.
 
-
+QUANTIZE_NUMERIC_DATA = FALSE
 
 message("load sample data")
 
@@ -65,15 +65,16 @@ dat <- dat[sampleIDs, full_keep_features]
 message(paste("number of features in new data matrix", length(colnames(dat))))
 
 
+if (QUANTIZE_NUMERIC_DATA) {
+  message("quantize numeric datatypes")
 
-message("quantize numeric datatypes")
-
-dat <- foreach(datatype_str = iter(nomir[!grepl("MUTA|CNVR", nomir)]), .combine = cbind) %do%
-  {
-    message(paste("quantize ", datatype_str))
-    quantize.data(dat[sampleIDs, grepl(paste0("N:", datatype_str, ":"), colnames(dat))],
-      nbr = 5, idx = sampleIDs)
-  }
+  dat <- foreach(datatype_str = iter(nomir[!grepl("MUTA|CNVR", nomir)]), .combine = cbind) %do%
+    {
+      message(paste("quantize ", datatype_str))
+      quantize.data(dat[sampleIDs, grepl(paste0("N:", datatype_str, ":"), colnames(dat))],
+        nbr = 5, idx = sampleIDs)
+    }
+}
 
 # aklimate expects a dataframe, not a matrix
 dat <- as.data.frame(dat)
@@ -83,8 +84,8 @@ message("load pathways")
 homeDir <- "./p_store_files"
 workDir <- "./models/"
 
-# p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned"))
-# p1 <- p1[!grepl("[[:digit:]]_SMPDB$|Z_SMPDB$", names(p1))]
+# p1 <- readSetList(paste0(homeDir, '/pathcomm_pathways_cleaned')) p1 <-
+# p1[!grepl('[[:digit:]]_SMPDB$|Z_SMPDB$', names(p1))]
 p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned_non_redundant_names.tsv"))
 p2 <- readSetList(paste0(homeDir, "/genomic_position_sets.listt"))
 p3 <- readSetList(paste0(homeDir, "/genesigdb_human.tab"))
