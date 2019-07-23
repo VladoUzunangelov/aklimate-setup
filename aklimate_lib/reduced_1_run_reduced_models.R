@@ -2,15 +2,24 @@
 
 ## copyright (c) 2019 Vlado Uzunangelov
 
+NUMBER_OF_CPUS_TO_USE = 3
+LOW_EXPRESSION_FILTER = FALSE
+QUANTIZE_NUMERIC_DATA = FALSE
+GENERATE_FEATURE_IMPORTANCE_FILES = FALSE
+
 message("Set some variables, load some libraries, source some paths.")
 
 ncpus <- NUMBER_OF_CPUS_TO_USE
 stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
 message("using ", ncpus, " CPUs")
 
-dataDir <- "/home/ubuntu/remote_dirs/courtyard/pstore_migration/home_dir/mkl/data/tmp_awg/LIHC"
-message("dataDir: ", dataDir)
+# dataDir <-
+# '/home/ubuntu/remote_dirs/courtyard/pstore_migration/home_dir/mkl/data/tmp_awg/LIHC'
+# message('dataDir: ', dataDir)
 
+# target.dir should have a 'models' directory that contains 1-
+# *_junkle_final_model.RData files 2- *_junkle_final_model_stats_preds.RData
+# files
 target.dir <- getwd()
 message("target.dir: ", target.dir)
 
@@ -39,14 +48,13 @@ library(FDb.InfiniumMethylation.hg19)
 
 ############################################################################
 
-# This section copied from '2_prepare_data.R'.
+# This section copied from '2_prepare_data.R'.  ideally, this sample data should
+# be loaded from a saved R object from the full AKLIMATE run
 
 if (exists("dat") && exists("pathways") && exists("labels")) {
   message("data already exists. skip data loading.")
 } else {
   message("data objects do not exist. need to read and preprocess.")
-
-  QUANTIZE_NUMERIC_DATA = FALSE
 
   message("load sample data")
 
@@ -78,36 +86,40 @@ if (exists("dat") && exists("pathways") && exists("labels")) {
 
   colnames(dat) <- updated.names
 
+  if (LOW_EXPRESSION_FILTER) {
+    message("filter out low expression features")
+    # Theo has named all gene expression features with 'N:GEXP:'
 
-  message("filter out low expression features")
-  # Theo has named all gene expression features with 'N:GEXP:'
+    sampleIDs <- rownames(dat)
+    exp_matrix <- dat[sampleIDs, grepl(paste0("N:GEXP:"), colnames(dat))]
 
-  sampleIDs <- rownames(dat)
-  exp_matrix <- dat[sampleIDs, grepl(paste0("N:GEXP:"), colnames(dat))]
+    message(paste("number of features in input expression matrix", length(colnames(exp_matrix))))
 
-  message(paste("number of features in input expression matrix", length(colnames(exp_matrix))))
+    exp_means <- colMeans(exp_matrix)
+    exp_sds <- apply(exp_matrix, 2, sd)
 
-  exp_means <- colMeans(exp_matrix)
-  exp_sds <- apply(exp_matrix, 2, sd)
+    ## exclude genes that are in the bottom quartile by mean or sd
+    exp_features_upper75_by_mean = names(exp_means)[exp_means > quantile(exp_means,
+      probs = 0.25)]
+    exp_features_upper75_by_sd = names(exp_sds)[exp_sds > quantile(exp_sds, probs = 0.25)]
+    exp_all_features <- colnames(exp_matrix)
+    exp_keep_features <- intersect(exp_features_upper75_by_mean, exp_features_upper75_by_sd)
+    exp_drop_features <- setdiff(exp_all_features, exp_keep_features)
 
-  ## exclude genes that are in the bottom quartile by mean or sd
-  exp_features_upper75_by_mean = names(exp_means)[exp_means > quantile(exp_means,
-    probs = 0.25)]
-  exp_features_upper75_by_sd = names(exp_sds)[exp_sds > quantile(exp_sds, probs = 0.25)]
-  exp_all_features <- colnames(exp_matrix)
-  exp_keep_features <- intersect(exp_features_upper75_by_mean, exp_features_upper75_by_sd)
-  exp_drop_features <- setdiff(exp_all_features, exp_keep_features)
+    full_keep_features <- setdiff(colnames(dat), exp_drop_features)
 
-  full_keep_features <- setdiff(colnames(dat), exp_drop_features)
+    message(paste("number of expression features to drop", length(exp_drop_features)))
 
-  message(paste("number of expression features to drop", length(exp_drop_features)))
+    exp_matrix <- NULL
 
-  exp_matrix <- NULL
+    message(paste("number of features in full data matrix", length(colnames(dat))))
 
-  message(paste("number of features in full data matrix", length(colnames(dat))))
-  dat <- dat[sampleIDs, full_keep_features]
-  message(paste("number of features in new data matrix", length(colnames(dat))))
+    dat <- dat[sampleIDs, full_keep_features]
+    message(paste("number of features in new data matrix", length(colnames(dat))))
 
+  } else {
+    message("skip low expression filter")
+  }
 
   if (QUANTIZE_NUMERIC_DATA) {
     message("quantize numeric datatypes")
@@ -118,6 +130,8 @@ if (exists("dat") && exists("pathways") && exists("labels")) {
         quantize.data(dat[sampleIDs, grepl(paste0("N:", datatype_str, ":"),
           colnames(dat))], nbr = 5, idx = sampleIDs)
       }
+  } else {
+    message("skip quantizing numeric datatypes")
   }
 
   # aklimate expects a dataframe, not a matrix
@@ -154,26 +168,26 @@ if (exists("dat") && exists("pathways") && exists("labels")) {
   labels <- factor(labels[, 1])
   lbls <- labels
 
-
-  message("load CV fold splits")
-
-  splits <- as.matrix(read.delim("./data/cv_folds.tsv", check.names = F, stringsAsFactors = F,
-    header = TRUE, row.names = 1))
-  splits <- splits[, -1]
-
-
-  message("set tasks and seeds")
-
-  tasks <- colnames(splits)
-  tasks <- tasks[1:25]
-
-  # you can change the seeds - this is just to match initial runs
-  seeds <- 11 * (1:length(tasks))
-  names(seeds) <- tasks
-
-  message("FINISHED - set tasks and seeds")
-
 }
+
+message("load CV fold splits")
+
+splits <- as.matrix(read.delim("./data/cv_folds.tsv", check.names = F, stringsAsFactors = F,
+  header = TRUE, row.names = 1))
+splits <- splits[, -1]
+
+
+message("set tasks and seeds")
+
+tasks <- colnames(splits)
+tasks <- tasks[1:25]
+
+# you can change the seeds - this is just to match initial runs
+# seeds <- 11 * (1:length(tasks))
+# names(seeds) <- tasks
+
+message("FINISHED - set tasks and seeds")
+
 #############################
 
 # labels <- as.matrix(read.delim(paste0(dataDir, '/iclust_membership'),
@@ -194,68 +208,121 @@ if (exists("dat") && exists("pathways") && exists("labels")) {
 #######################################################
 
 
-#
-z1 <- foreach(i = iter(tasks)) %do% {
-  # load(paste0(target.dir, '/split_', i, '_aklimate_multiclass_model.RData'))
-  task <- colnames(splits)[i]
-  message("z1 starting ", i)
-  model_file_path <- paste0(target.dir, "/models/", task, "_junkle_final_model.RData")
+# generate feature importance files from the full models
+if (GENERATE_FEATURE_IMPORTANCE_FILES) {
+  message("generate feature importance files")
+  z1 <- foreach(task = iter(tasks)) %do% {
+    # load(paste0(target.dir, '/split_', i, '_aklimate_multiclass_model.RData'))
+    message("z1 starting ", task)
+    model_file_path <- paste0(target.dir, "/models/", task, "_junkle_final_model.RData")
 
-  message("model_file_path: ", model_file_path)
-  load(model_file_path)
+    message("model_file_path: ", model_file_path)
+    load(model_file_path)
 
-  message("z1 load completed ", i)
-  imps <- rank.features.jklm(jklm)
+    message("z1 load completed ", task)
+    imps <- rank.features.jklm(jklm)
 
-  message("z1 rank.features.jklm completed ", i)
-  feature_importance_file_path <- paste0(target.dir, "/models/", task, "_aklimate_multiclass_feature_importance.tab")
+    message("z1 rank.features.jklm completed ", task)
+    feature_importance_file_path <- paste0(target.dir, "/models/", task, "_aklimate_multiclass_feature_importance.tab")
 
-  message("feature_importance_file_path: ", feature_importance_file_path)
-  write.df(data.frame(importance = imps), "features", feature_importance_file_path)
+    message("feature_importance_file_path: ", feature_importance_file_path)
+    write.df(data.frame(importance = imps), "features", feature_importance_file_path)
 
-  message("z1 output written ", i)
+    message("z1 output written ", task)
+  }
+} else {
+  message("skip generating feature importance files")
 }
+
+# cutoffs <- c(1, 5, 10, 50, 100, 1000)
+
+# reps.list <- lapply(1:25, function(x) seq(5 * (x - 1) + 1, 5 * x, 1))
 
 cutoffs <- c(1, 5, 10, 50, 100, 1000)
-reps.list <- lapply(1:25, function(x) seq(5 * (x - 1) + 1, 5 * x, 1))
+reps.list <- lapply(1:1, function(x) seq(5 * (x - 1) + 1, 5 * x, 1))
+
+# stopifnot(FALSE)
+
+
+##################################################
+
+# generate reduced models from most important features
+
+
+acc.reduced <- foreach(cutoff = iter(cutoffs), .combine = c) %do% {
+  preds <- foreach(task = iter(tasks), .combine = c) %do% {
+    tasktag = paste0("### tasktag ### ", " cutoff: ", cutoff, " task: ", task,
+      "\n")
+    message(tasktag)
+
+
+    idx.train <- rownames(splits)[splits[, task] == 0]
+    message("idx.train: ", length(idx.train))
+
+    idx.test <- setdiff(rownames(splits), idx.train)
+    message("idx.test: ", length(idx.test))
+
+
+    # idx.train <- new_folds[[j]] idx.test <- setdiff(new_universe, idx.train)
+
+    feature_importance_file_path = paste0(target.dir, "/models/", task, "_aklimate_multiclass_feature_importance.tab")
+    message("read feature importance from: ", feature_importance_file_path)
+    imps <- read.delim(feature_importance_file_path, header = TRUE, row.names = 1)
+
+    message("createDummyFeatures")
+    dat <- mlr::createDummyFeatures(dat)
+    message("finished createDummyFeatures")
+
+
+    message("getting training data: ", dim(trainingData))
+    labelsDF <- data.frame(labels = lbls[idx.train])
+    trainingFeatures <- dat[idx.train, rownames(imps)[1:cutoff], drop = FALSE]
+    trainingData <- cbind(labelsDF, trainingFeatures)
+    message("got training data: ", dim(trainingData))
+
+    numVarsSplit <- ceiling(cutoff/5)
+    message("numVarsSplit: ", numVarsSplit)
+
+    message("run ranger")
+    rf <- ranger(data = trainingData, dependent.variable.name = "labels", always.split.variables = NULL,
+      classification = TRUE, sample.fraction = 0.5, num.trees = 3000, mtry = numVarsSplit,
+      min.node.size = 1, case.weights = NULL, num.threads = 3, probability = TRUE,
+      respect.unordered.factors = FALSE, importance = "none", write.forest = TRUE,
+      keep.inbag = TRUE, replace = FALSE)
+
+    reduced_model_file_path = paste0(target.dir, "/models/", task, "_cutoff_",
+      cutoff, "_rf_reduced_model.RData")
+    message("save ranger result to: ", reduced_model_file_path)
+    save(rf, file = reduced_model_file_path)
+
+    message("predict using reduced model")
+    rf.preds <- predict(rf, dat[idx.test, rownames(imps)[1:cutoff]])$predictions
+    rownames(rf.preds) <- idx.test
+
+    reduced_model_predictions_path = paste0(target.dir, "/models/", task, "_cutoff_",
+      cutoff, "_rf_reduced_model_predictions.RData")
+    message("save predictions to: ", reduced_model_predictions_path)
+    save(rf.preds, file = reduced_model_predictions_path)
+
+    message("generate confusion matrix")
+    confM <- caret::confusionMatrix(factor(apply(rf.preds[idx.test, ], 1, which.max),
+      levels = levels(lbls)), lbls[idx.test])
+
+    confusion_matrix_file_path = paste0(target.dir, "/models/", task, "_cutoff_",
+      cutoff, "_rf_reduced_model_stats.RData")
+    message("write confusion matrix to: ", confusion_matrix_file_path)
+    save(confM, file = confusion_matrix_file_path)
+
+    message("compute balanced accuracy")
+    mean(unname(confM$byClass[, "Balanced Accuracy"]))
+    ## mean(unname(confM$overall['Accuracy']))
+  }
+
+  mean(preds)
+
+}
 
 stopifnot(FALSE)
-
-acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
-  foreach(k = iter(cutoffs), .combine = c) %do% {
-    preds <- foreach(j = iter(i), .combine = c) %do% {
-      idx.train <- new_folds[[j]]
-      idx.test <- setdiff(new_universe, idx.train)
-
-
-
-      imps <- read.delim(paste0(target.dir, "/split_", j, "_aklimate_multiclass_feature_importance.tab"),
-        header = TRUE, row.names = 1)
-      dat <- mlr::createDummyFeatures(dat)
-      rf <- ranger(data = cbind(data.frame(labels = lbls[idx.train]), dat[idx.train,
-        rownames(imps)[1:k], drop = FALSE]), dependent.variable.name = "labels",
-        always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
-        num.trees = 3000, mtry = ceiling(k/5), min.node.size = 1, case.weights = NULL,
-        num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
-        importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
-      save(rf, file = paste0(target.dir, "/split_", j, "_cutoff_", k, "_rf_reduced_model.RData"))
-      rf.preds <- predict(rf, dat[idx.test, rownames(imps)[1:k]])$predictions
-      rownames(rf.preds) <- idx.test
-      save(rf.preds, file = paste0(target.dir, "/split_", j, "_cutoff_", k,
-        "_rf_reduced_model_predictions.RData"))
-
-      confM <- caret::confusionMatrix(factor(apply(rf.preds[idx.test, ], 1,
-        which.max), levels = levels(lbls)), lbls[idx.test])
-      save(confM, file = paste0(target.dir, "/split_", j, "_cutoff_", k, "_rf_reduced_model_stats.RData"))
-
-      mean(unname(confM$byClass[, "Balanced Accuracy"]))
-      ## mean(unname(confM$overall['Accuracy']))
-    }
-
-    mean(preds)
-
-  }
-}
 
 colnames(acc.reduced) <- cutoffs
 write.df(data.frame(acc.reduced, check.names = FALSE), "repetition", paste0(target.dir,
