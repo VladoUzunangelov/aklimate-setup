@@ -103,9 +103,6 @@ tasks <- tasks[1:25]
 
 
 if (LOAD_SAMPLE_DATA_MATRIX) {
-
-
-
   message("load sample data")
 
   ## MIR is also there - about 800 MIRs right now probably best to not include them
@@ -225,22 +222,23 @@ if (LOAD_SAMPLE_DATA_MATRIX) {
 
 #######################################################
 
-
-#
-message("getting feature importance from full models")
-z1 <- foreach(i = iter(tasks)) %dopar% {
-  load(paste0(modelsDir, "/", i, "_junkle_final_model.RData"))
-  if (is.null(jklm)) {
-	  message("jklm object is null for ",i)
+if (GENERATE_FEATURE_IMPORTANCE_FILES) {
+  message("getting feature importance from full models")
+  z1 <- foreach(i = iter(tasks)) %dopar% {
+    load(paste0(modelsDir, "/", i, "_junkle_final_model.RData"))
+    if (is.null(jklm)) {
+      message("jklm object is null for ", i)
+    }
+    imps <- rank.features.jklm(jklm)
+    if (is.null(imps)) {
+      messge("imps is null for ", i)
+    }
+    write.df(data.frame(importance = imps), "features", paste0(modelsDir, "/",
+      i, "_aklimate_multiclass_feature_importance.tab"))
   }
-  imps <- rank.features.jklm(jklm)
-  if (is.null(imps)) {
-	  messge("imps is null for ",i)
-  }
-  write.df(data.frame(importance = imps), "features", paste0(modelsDir, "/", i,
-    "_aklimate_multiclass_feature_importance.tab"))
+} else {
+  message("skipping generating importance files")
 }
-
 
 cutoffs <- c(5, 10, 20, 50, 100, 200, 500, 1000, 1500)
 message("using reduced model sizes: ", cutoffs)
