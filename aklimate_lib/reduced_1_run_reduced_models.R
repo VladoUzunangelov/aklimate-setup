@@ -230,7 +230,13 @@ if (LOAD_SAMPLE_DATA_MATRIX) {
 message("getting feature importance from full models")
 z1 <- foreach(i = iter(tasks)) %dopar% {
   load(paste0(modelsDir, "/", i, "_junkle_final_model.RData"))
+  if (is.null(jklm)) {
+	  message("jklm object is null for ",i)
+  }
   imps <- rank.features.jklm(jklm)
+  if (is.null(imps)) {
+	  messge("imps is null for ",i)
+  }
   write.df(data.frame(importance = imps), "features", paste0(modelsDir, "/", i,
     "_aklimate_multiclass_feature_importance.tab"))
 }
