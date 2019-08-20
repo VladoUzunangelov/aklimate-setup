@@ -2,7 +2,7 @@
 
 ## copyright (c) 2019 Vlado Uzunangelov
 
-NUMBER_OF_CPUS_TO_USE = 28
+# NUMBER_OF_CPUS_TO_USE = 28
 GENERATE_FEATURE_IMPORTANCE_FILES = TRUE
 
 message("Set some variables, load some libraries, source some paths.")
@@ -11,32 +11,13 @@ ncpus <- NUMBER_OF_CPUS_TO_USE
 stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
 message("using ", ncpus, " CPUs")
 
-modelsDir <- "./models"
-reposDir <- "./repos"
+cohortDir <- getwd()
+modelsDir <- paste0(cohortDir, "/models")
 
-target.dir <- getwd()
-
-tasks <- 1:25
+# tasks <- 1:25
+tasks <- colnames(splits)[1:25]
 message("tasks: ", tasks)
 
-library(doParallel)
-library(foreach)
-## library(doRNG)
-registerDoParallel(cores = 15)
-
-library(abind)
-library(ranger)
-library(dplyr)
-library(caret)
-library(ROCR)
-library(pracma)
-source(paste0(reposDir, "/tcga_scripts/utils.R"), chdir = TRUE)
-source(paste0(reposDir, "/junkle/junkle-utils.R"), chdir = TRUE)
-source(paste0(reposDir, "/junkle/junkle.R"), chdir = TRUE)
-source(paste0(reposDir, "/Spicer/Spicer.R"), chdir = TRUE)
-source(paste0(reposDir, "/Spicer/Spicer-classify.R"), chdir = TRUE)
-
-library(FDb.InfiniumMethylation.hg19)
 
 #######################################################
 

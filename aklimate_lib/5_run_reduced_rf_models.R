@@ -2,7 +2,7 @@
 
 ## copyright (c) 2019 Vlado Uzunangelov
 
-NUMBER_OF_CPUS_TO_USE = 28
+# NUMBER_OF_CPUS_TO_USE = 28
 LOW_EXPRESSION_FILTER = FALSE
 QUANTIZE_NUMERIC_DATA = FALSE
 LOAD_SAMPLE_DATA_MATRIX = TRUE
@@ -13,44 +13,13 @@ ncpus <- NUMBER_OF_CPUS_TO_USE
 stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
 message("using ", ncpus, " CPUs")
 
-
-# dataDir <-
-# '/home/ubuntu/remote_dirs/courtyard/pstore_migration/home_dir/mkl/data/tmp_awg/LIHC'
-# message('dataDir: ', dataDir)
-
-# target.dir should have a 'models' directory that contains 1-
-# *_junkle_final_model.RData files 2- *_junkle_final_model_stats_preds.RData
-# files target.dir <- getwd() message('target.dir: ', target.dir)
-
 cohortDir <- getwd()
-featureSetsDir <- "./p_store_files"
-modelsDir <- "./models"
-reposDir <- "./repos"
-dataDir <- "./data"
-
-target.dir <- getwd()
+featureSetsDir <- paste0(cohortDir, "/p_store_files")
+modelsDir <- paste0(cohortDir, "/models")
+dataDir <- paste0(cohortDir, "/data")
 
 tasks <- 1:25
 message("tasks: ", tasks)
-
-library(doParallel)
-library(foreach)
-## library(doRNG)
-registerDoParallel(cores = 15)
-
-library(abind)
-library(ranger)
-library(dplyr)
-library(caret)
-library(ROCR)
-library(pracma)
-source(paste0(reposDir, "/tcga_scripts/utils.R"), chdir = TRUE)
-source(paste0(reposDir, "/junkle/junkle-utils.R"), chdir = TRUE)
-source(paste0(reposDir, "/junkle/junkle.R"), chdir = TRUE)
-source(paste0(reposDir, "/Spicer/Spicer.R"), chdir = TRUE)
-source(paste0(reposDir, "/Spicer/Spicer-classify.R"), chdir = TRUE)
-
-library(FDb.InfiniumMethylation.hg19)
 
 ############################################################################
 
