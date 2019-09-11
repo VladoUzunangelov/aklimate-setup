@@ -86,15 +86,26 @@ workDir <- "./models/"
 
 # p1 <- readSetList(paste0(homeDir, '/pathcomm_pathways_cleaned')) p1 <-
 # p1[!grepl('[[:digit:]]_SMPDB$|Z_SMPDB$', names(p1))]
-p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned_non_redundant_names.tsv"))
-p2 <- readSetList(paste0(homeDir, "/genomic_position_sets.listt"))
-p3 <- readSetList(paste0(homeDir, "/genesigdb_human.tab"))
-p4 <- readSetList(paste0(homeDir, "/msigdb_c2_c5_no_c2_cp.tab"))
 
-pathways <- c(p1, p2, p3, p4)
+# using individual pathway files
+# p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned_non_redundant_names.tsv"))
+# p2 <- readSetList(paste0(homeDir, "/genomic_position_sets.listt"))
+# p3 <- readSetList(paste0(homeDir, "/genesigdb_human.tab"))
+# p4 <- readSetList(paste0(homeDir, "/msigdb_c2_c5_no_c2_cp.tab"))
+#
+# pathways <- c(p1, p2, p3, p4)
+
+# using one file of collected pathways.
+# The names of these pathways have been mapped to simple names.
+# This was done to avoid the continued problem of name collisions and the like.
+# collected_pathways_name_mapped.tsv
+p_collected <- readSetList(paste0(homeDir, "collected_pathways_name_mapped.tsv"))
+pathways <- c(p_collected)
+
 max_size_of_pathways <- 1000
 pathways <- pathways[sapply(pathways, length) < max_size_of_pathways]
 
+# TODO need to load the name mappings in order to map back to original pathway names
 
 message("sanitize pathway names")
 
