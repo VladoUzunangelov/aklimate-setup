@@ -99,13 +99,14 @@ workDir <- "./models/"
 # The names of these pathways have been mapped to simple names.
 # This was done to avoid the continued problem of name collisions and the like.
 # collected_pathways_name_mapped.tsv
-p_collected <- readSetList(paste0(homeDir, "collected_pathways_name_mapped.tsv"))
+p_collected <- readSetList(paste0(homeDir, "/collected_pathways_name_mapped.tsv"))
 pathways <- c(p_collected)
 
 max_size_of_pathways <- 1000
 pathways <- pathways[sapply(pathways, length) < max_size_of_pathways]
 
-# TODO need to load the name mappings in order to map back to original pathway names
+# need to load the name mappings in order to map back to original pathway names
+p_name_mapping <- read.csv(file=paste0(homeDir, "/pathway_name_mapping.tsv"), header = FALSE, sep = "\t", col.names = c("p_id", "p_name"))
 
 message("sanitize pathway names")
 
