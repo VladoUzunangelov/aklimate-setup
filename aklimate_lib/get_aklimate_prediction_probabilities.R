@@ -21,7 +21,7 @@ Options:
 
 get_full_model_test_probs <- function(filename, outFile= "full_test_probs.tsv") {
     load(filename)
-    write.df(data.frame(as.list(jklm.preds),row.names.id = "sampleID", outFile)
+    write.df(data.frame(as.list(jklm.preds)),row.names.id = "sampleID", outFile)
 }
 
 
