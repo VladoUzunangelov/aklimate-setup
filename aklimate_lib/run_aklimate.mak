@@ -20,8 +20,98 @@ TARGETS= \
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
  
-test:cv_test_sample_predictions_reduced_50.tsv
+test:
 
+aklimate_sample_predictions.tsv:
+	cat $(shell find ./collect_predictions -type f -name "cv_test_sample_predictions_*" | head -n 1) \
+	> 1.tmp ;
+	\
+	grep -v '^#' 1.tmp \
+	| cut -f 1-5 \
+	| sed -e 's/	/___/g' \
+	> 2.tmp ;
+	\
+	\
+	rm -f comments.tmp ;
+	\
+	for file in $(shell find ./collect_predictions -type f -name "cv_test_sample_predictions_*") ; do \
+		echo $${file} ; \
+		\
+		grep -v '^#' $${file} \
+		> a.tmp ; \
+		\
+		cut -f 1-5 a.tmp \
+		| sed -e 's/	/___/g' \
+		> b.tmp ; \
+		\
+		cut -f 6 a.tmp \
+		| paste.pl b.tmp - \
+		> c.tmp ; \
+		\
+		join.pl -1 1 -2 1 -o "__NONE__" 2.tmp c.tmp \
+		> d.tmp ; \
+		\
+		grep '^#' $${file} \
+		>> comments.tmp ; \
+		\
+		mv d.tmp 2.tmp ; \
+		\
+		rm -f a.tmp b.tmp c.tmp d.tmp ; \
+		\
+	done ;
+	\
+	head -n 1 comments.tmp \
+	> 3.tmp ;
+	\
+	cat comments.tmp \
+	| grep -vf 3.tmp \
+	| cat 3.tmp - \
+	> 4.tmp ;
+	\
+	\
+	cut -f 1 2.tmp \
+	| sed -e 's/___/	/g' \
+	> x.tmp ;
+	\
+	tail -n +2 x.tmp \
+	| sed -e 's/	R/	/' \
+		-e 's/	F/	/' \
+		-e 's/	TEST_/	/' \
+	> y.tmp ;
+	\
+	head -n 1 x.tmp \
+	| cat - y.tmp \
+	> z.tmp ;
+	\
+	cut -f 2- 2.tmp \
+	| paste.pl z.tmp - \
+	> 5.tmp ;
+	\
+	\
+	cat 4.tmp 5.tmp \
+	> 6.tmp ;
+	\
+	\
+	mv 6.tmp $@ ;
+	\
+	rm -f 1.tmp 2.tmp 3.tmp 4.tmp 5.tmp 6.tmp comments.tmp x.tmp y.tmp z.tmp ;
+	\
+
+collect_predictions:
+	rm -rf $@_temp ;
+	\
+	for cutoff in $(REDUCED_MODELS_CUTOFFS) ; do \
+		echo $${cutoff} ; \
+		\
+		make cv_test_sample_predictions_reduced_$${cutoff}.tsv ; \
+	done ;
+	\
+	mkdir -p $@_temp ;
+	\
+	find . -maxdepth 1 -type f -name "cv_test_sample_predictions_reduced_*.tsv" -exec mv {} ./$@_temp/. \; ;
+	\
+	mv $@_temp $@ ;
+	\
 
 # R5:F5_cutoff_500_rf_reduced_model_predictions.RData
 # might need to use jq to write out sample label probabilities.
@@ -54,7 +144,6 @@ cv_test_sample_predictions_reduced_%.tsv:
 		\
 		source ~/softwares/venv/3/bin/activate && \
 		python ./tmp_aklimate_prediction_matrix_to_json.py \
-			-v \
 		< train1.tmp \
 		> train2.tmp \
 		; \
@@ -64,7 +153,6 @@ cv_test_sample_predictions_reduced_%.tsv:
 		\
 		source ~/softwares/venv/3/bin/activate && \
 		python ./tmp_aklimate_prediction_matrix_to_json.py \
-			-v \
 		< reduced_test_probs.tsv \
 		> test1.tmp \
 		; \
@@ -116,9 +204,50 @@ cv_test_sample_predictions_reduced_%.tsv:
 	cat header.tmp 1.tmp \
 	> 2.tmp ;
 	\
-	mv 2.tmp $@ ;
+	\
+	\
+	echo $(THIS_DIR_NAME) \
+	| cut -d "_" -f 3,4 \
+	| paste.pl -d "_" - "p" \
+	| tr "_" "|" \
+	| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|\2/' \
+	> x.tmp ;
+	\
+	head -n 1 2.tmp \
+	| cut.pl -f 1--2 \
+	| paste.pl - "`cat x.tmp`" \
+	> new_header.tmp ;
+	\
+	tail -n +2 2.tmp \
+	| cat new_header.tmp - \
+	> 3.tmp ;
+	\
+	\
+	cat tarball.txt \
+	> comment_section.tmp ;
+	\
+	echo "" \
+	>> comment_section.tmp ;
+	\
+	cat x.tmp \
+	| paste.pl - "reduced AKLIMATE model with $* features" \
+	>> comment_section.tmp ;
+	\
+	echo "" \
+	>> comment_section.tmp ;
+	\
+	cat comment_section.tmp \
+	| sed -e 's/^/\#/' \
+	| cat - 3.tmp \
+	> 4.tmp ;
+	\
+	\
+	\
+	mv 4.tmp $@ ;
 	\
 	rm -f 1.tmp 2.tmp labeled_sample.tmp ;
+	\
+	rm -f 3.tmp 4.tmp comment_section.tmp header.tmp labeled_samples.tmp new_header.tmp x.tmp ;
 	\
 
 # Rscript get_aklimate_prediction_probabilities.R full test $${file} ;
