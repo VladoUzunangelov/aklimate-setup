@@ -150,8 +150,11 @@ worker.f <- function(tasks) {
     idx.train <- rownames(splits)[splits[, i] == 0]
     idx.test <- setdiff(rownames(splits), idx.train)
 
+#	classification_type <- "binary"
+	classification_type <- "multiclass"
+
     jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL,
-      list(ttype = "multiclass", bin.perf = c("bacc"), importance = "permutation",
+      list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
         min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE,
         weights = NULL, oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25,
           ntree = 500)), list(topn = 5, subsetCV = TRUE, lamb = c(-8, 3),
