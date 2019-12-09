@@ -11,6 +11,7 @@ COMBINED_MATRIX_FILE=$(DATA_DIR)/combined_matrix.tsv
 CV_SETS_FILE=$(DATA_DIR)/cv_folds.tsv
 
 TARGETS= \
+	datatype_stacked_bar_plots.png \
 	sickle_plot.png \
 	cv_test_sample_predictions_full.tsv \
 	datatypes.tsv \
@@ -21,7 +22,17 @@ TARGETS= \
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
 
-test: sickle_plot.png
+test: datatype_stacked_bar_plots.png
+
+datatype_stacked_bar_plots.png:
+	rm -f colorfeature_proportion_barplot.png ;
+	\
+	Rscript feature_type_stacked_barplot.R ;
+	\
+	mv colorfeature_proportion_barplot.png $@ ;
+	\
+	rm -f colorfeature_proportion_barplot.png ;
+	\
 
 sickle_plot.png:
 	Rscript --vanilla ./bacc_sickle_plot.R \
