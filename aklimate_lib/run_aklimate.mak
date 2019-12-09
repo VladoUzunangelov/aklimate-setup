@@ -11,6 +11,7 @@ COMBINED_MATRIX_FILE=$(DATA_DIR)/combined_matrix.tsv
 CV_SETS_FILE=$(DATA_DIR)/cv_folds.tsv
 
 TARGETS= \
+	sickle_plot.png \
 	cv_test_sample_predictions_full.tsv \
 	datatypes.tsv \
 	samples.tsv \
@@ -19,8 +20,18 @@ TARGETS= \
 
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
- 
-test:
+
+test: sickle_plot.png
+
+sickle_plot.png:
+	Rscript --vanilla ./bacc_sickle_plot.R \
+		./models/balanced_accuracy_reduced_feature_sets.tab \
+		1.tmp \
+	;
+	mv 1.tmp $@ ;
+	\
+	rm -f 1.tmp ;
+	\
 
 aklimate_sample_predictions.tsv:
 	cat $(shell find ./collect_predictions -type f -name "cv_test_sample_predictions_*" | head -n 1) \
@@ -453,4 +464,3 @@ clean_targets:
 
 clean_tmp:
 	rm -f $(wildcard *.tmp) ;
-
