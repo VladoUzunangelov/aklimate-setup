@@ -11,6 +11,8 @@ COMBINED_MATRIX_FILE=$(DATA_DIR)/combined_matrix.tsv
 CV_SETS_FILE=$(DATA_DIR)/cv_folds.tsv
 
 TARGETS= \
+	bal_acc_subtype_50_cutoff.png \
+	feature_importance_stats.tsv \
 	datatype_stacked_bar_plots.png \
 	sickle_plot.png \
 	cv_test_sample_predictions_full.tsv \
@@ -22,7 +24,39 @@ TARGETS= \
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
 
-test: datatype_stacked_bar_plots.png
+test: bal_acc_subtype_50_cutoff.png
+
+bal_acc_subtype_50_cutoff.png:
+	Rscript find_balance_accuracy_subcohort.R ;
+	\
+
+feature_importance_stats.tsv:
+	rm -f 1.tmp ;
+	\
+	for file in `find ./models -name "*_aklimate_multiclass_feature_importance.tab" ` ; do \
+		echo $${file} ; \
+		\
+		tail -n +2 $${file} \
+		>> 1.tmp ; \
+		\
+	done ;
+	\
+	expand.pl 1.tmp \
+	> 2.tmp ;
+	\
+	cat 2.tmp \
+	| row_stats.pl -h 0 -k 0 -allstats \
+	> 3.tmp ;
+	\
+	cat 3.tmp \
+	| sort.pl -h 1 -k 10 -r \
+	> 4.tmp ;
+	\
+	mv 4.tmp $@ ;
+	\
+	rm -f 1.tmp 2.tmp 3.tmp 4.tmp ;
+	\
+	\
 
 datatype_stacked_bar_plots.png:
 	rm -f colorfeature_proportion_barplot.png ;
