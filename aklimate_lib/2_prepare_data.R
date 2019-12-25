@@ -168,9 +168,14 @@ worker.f <- function(tasks) {
 
     confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)),
       labels[idx.test])
-    bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
 
-
+	if (classification_type=="binary") {
+		# for binary classification, use this
+		bacc<- unname(confM$byClass["Balanced Accuracy"]) 
+	} else {
+		# for multiclass classification, use this
+		bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
+	}
 
     save(jklm.preds, confM, bacc, file = paste0(workDir, "/", i, "_junkle_final_model_stats_preds.RData"))
 
