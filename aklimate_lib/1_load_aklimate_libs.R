@@ -3,8 +3,7 @@
 
 ## check 2_run_aklimate.R for example directory structure
 
-message("set classification type")
-CLASSIFICATION_TYPE <- NULL
+message("validate classification type")
 stopifnot(CLASSIFICATION_TYPE=="binary" || CLASSIFICATION_TYPE=="multiclass")
 
 message("loading libraries")
