@@ -3,6 +3,10 @@
 
 ## check 2_run_aklimate.R for example directory structure
 
+message("set classification type")
+CLASSIFICATION_TYPE <- NULL
+stopifnot(CLASSIFICATION_TYPE=="binary" || CLASSIFICATION_TYPE=="multiclass")
+
 message("loading libraries")
 
 ncpus <- NUMBER_OF_CPUS_TO_USE

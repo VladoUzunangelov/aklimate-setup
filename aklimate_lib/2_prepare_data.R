@@ -151,7 +151,8 @@ worker.f <- function(tasks) {
     idx.test <- setdiff(rownames(splits), idx.train)
 
 #	classification_type <- "binary"
-	classification_type <- "multiclass"
+#	classification_type <- "multiclass"
+	classification_type <- CLASSIFICATION_TYPE
 
     jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL,
       list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
@@ -172,9 +173,12 @@ worker.f <- function(tasks) {
 	if (classification_type=="binary") {
 		# for binary classification, use this
 		bacc<- unname(confM$byClass["Balanced Accuracy"]) 
-	} else {
+	} else if (classification_type=="multiclass") {
 		# for multiclass classification, use this
 		bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
+	} else {
+		message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=", CLASSIFICATION_TYPE))
+		stopifnot(FALSE)
 	}
 
     save(jklm.preds, confM, bacc, file = paste0(workDir, "/", i, "_junkle_final_model_stats_preds.RData"))

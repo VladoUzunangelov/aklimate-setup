@@ -191,7 +191,20 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
         which.max), levels = levels(labels)), labels[idx.test])
       save(confM, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model_stats.RData"))
 
-      mean(unname(confM$byClass[, "Balanced Accuracy"]))
+
+		classification_type <- CLASSIFICATION_TYPE
+
+		if (classification_type=="binary") {
+			# for binary classification, use this
+			unname(confM$byClass["Balanced Accuracy"])
+		} else if (classification_type=="multiclass") {
+			# for multiclass classification, use this
+			mean(unname(confM$byClass[, "Balanced Accuracy"]))
+		} else {
+			message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=", CLASSIFICATION_TYPE))
+			stopifnot(FALSE)
+		}
+
       ## mean(unname(confM$overall['Accuracy']))
     }
 
