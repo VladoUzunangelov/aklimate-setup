@@ -15,6 +15,17 @@ write_feature_set_weights_to_file <- function(feature_set_weights, filename) {
     filename)
 }
 
+check_if_binary_or_multiclass_model <- function(jklm_model) {
+  if (!is.null(jklm_model[["sorted_kern_weight"]])) {
+    n <- "binary"
+    message("binary model detected")
+  } else {
+    n <- length(jklm_model)
+    message(paste0("multiclass model detected with ", n, "models"))
+  }
+  return(n)
+}
+
 main <- function(argv) {
   print("argv below:")
   print(argv)
@@ -26,15 +37,23 @@ main <- function(argv) {
   message("get model")
   model <- jklm[["junkle.model"]]
 
-  message(paste0("length(model)=", length(model)))
+  classification_type <- check_if_binary_or_multiclass_model(model)
 
-  message("get feature set weights")
-  for (i in 1:length(model)) {
-    message("i=", i)
-    weights_named_vector <- model[[i]][["sorted_kern_weight"]]
-    write_feature_set_weights_to_file(weights_named_vector, paste0("AKLIMATE_feature_set_weights_",
-      i, ".tsv"))
+  if (classification_type == "binary") {
+    weights_named_vector <- model[["sorted_kern_weight"]]
+    write_feature_set_weights_to_file(weights_named_vector, "AKLIMATE_feature_set_weights.tsv")
+  } else {
+    message(paste0("length(model)=", length(model)))
+
+    message("get feature set weights")
+    for (i in 1:length(model)) {
+      message("i=", i)
+      weights_named_vector <- model[[i]][["sorted_kern_weight"]]
+      write_feature_set_weights_to_file(weights_named_vector, paste0("AKLIMATE_feature_set_weights_",
+        i, ".tsv"))
+    }
   }
 }
+
 
 main(commandArgs(TRUE))
