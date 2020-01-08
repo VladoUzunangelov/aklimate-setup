@@ -8,6 +8,7 @@ Example:
 \tRscript get_aklimate_feature_set_weights.R arg1 arg2 arg3 arg4
 Options:
 \targ1 is a filename to load the AKLIMATE model, such as R1:F1_junkle_final_model.RData.
+\targ2 if supplied, is the output filename. Defaults to AKLIMATE_feature_set_weights.tsv.
 ")
 
 write_feature_set_weights_to_file <- function(feature_set_weights, filename) {
@@ -34,23 +35,32 @@ main <- function(argv) {
   message("load full AKLIMATE model")
   load(argv[1])
 
+  if (length(argv) > 1) {
+    outfilename <- argv[2]
+  } else {
+    outfilename <- "AKLIMATE_feature_set_weights.tsv"
+  }
+
   message("get model")
   model <- jklm[["junkle.model"]]
 
   classification_type <- check_if_binary_or_multiclass_model(model)
 
+  message("get feature set weights")
   if (classification_type == "binary") {
+
     weights_named_vector <- model[["sorted_kern_weight"]]
-    write_feature_set_weights_to_file(weights_named_vector, "AKLIMATE_feature_set_weights.tsv")
+    write_feature_set_weights_to_file(weights_named_vector, outfilename)
+
   } else {
+
     message(paste0("length(model)=", length(model)))
 
-    message("get feature set weights")
     for (i in 1:length(model)) {
       message("i=", i)
       weights_named_vector <- model[[i]][["sorted_kern_weight"]]
-      write_feature_set_weights_to_file(weights_named_vector, paste0("AKLIMATE_feature_set_weights_",
-        i, ".tsv"))
+      write_feature_set_weights_to_file(weights_named_vector, paste0(outfilename,
+        "_", i))
     }
   }
 }

@@ -11,6 +11,7 @@ COMBINED_MATRIX_FILE=$(DATA_DIR)/combined_matrix.tsv
 CV_SETS_FILE=$(DATA_DIR)/cv_folds.tsv
 
 TARGETS= \
+	feature_set_weights.tsv \
 	bal_acc_subtype_50_cutoff.png \
 	feature_importance_stats.tsv \
 	datatype_stacked_bar_plots.png \
@@ -24,7 +25,41 @@ TARGETS= \
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
 
-test: bal_acc_subtype_50_cutoff.png
+test: feature_set_weights.tsv
+
+# TODO this target currently only works with binary AKLIMATE models
+feature_set_weights.tsv:
+	rm -f 1.tmp ;
+	\
+	for fold in $(shell ls -1 ./models | grep "_junkle_final_model.RData" | cut.pl -d "_junkle_final_model.RData" -f 1 ) ; do \
+		echo $${fold} ; \
+		\
+		Rscript get_aklimate_feature_set_weights.R \
+			./models/$${fold}_junkle_final_model.RData \
+			$${fold}_feature_set_weights.tsv \
+		; \
+		paste.pl "$${fold}" $${fold}_feature_set_weights.tsv \
+		| tail -n +2 \
+		>> 1.tmp ; \
+		\
+		rm -f $${fold}_feature_set_weights.tsv ; \
+		\
+	done ;
+	\
+	cut -f 2 1.tmp \
+	| cut.pl -d "_" -f 1--6 \
+	> 2.tmp ;
+	\
+	paste.pl 2.tmp 1.tmp \
+	> 3.tmp ;
+	\
+	join.pl -r -1 1 -2 1 -o "__NONE__" 3.tmp ./p_store_files/pathway_name_mapping.tsv \
+	> 4.tmp ;
+	\
+	mv 4.tmp $@ ;
+	\
+	rm -f 1.tmp 2.tmp 3.tmp 4.tmp ;
+	\
 
 bal_acc_subtype_50_cutoff.png:
 	Rscript find_balance_accuracy_subcohort.R ;
@@ -49,7 +84,7 @@ feature_importance_stats.tsv:
 	> 3.tmp ;
 	\
 	cat 3.tmp \
-	| sort.pl -h 1 -k 10 -r \
+	| sort.pl -h 1 -k 9 -r \
 	> 4.tmp ;
 	\
 	mv 4.tmp $@ ;
