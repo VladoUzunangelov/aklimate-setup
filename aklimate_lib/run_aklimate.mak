@@ -25,9 +25,8 @@ TARGETS= \
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
 
-test: feature_set_weights.tsv
+test:
 
-# TODO this target currently only works with binary AKLIMATE models
 feature_set_weights.tsv:
 	rm -f 1.tmp ;
 	\
@@ -36,13 +35,35 @@ feature_set_weights.tsv:
 		\
 		Rscript get_aklimate_feature_set_weights.R \
 			./models/$${fold}_junkle_final_model.RData \
-			$${fold}_feature_set_weights.tsv \
+			$${fold}_feature_set_weights.tmp \
 		; \
-		paste.pl "$${fold}" $${fold}_feature_set_weights.tsv \
-		| tail -n +2 \
-		>> 1.tmp ; \
 		\
-		rm -f $${fold}_feature_set_weights.tsv ; \
+		\
+		if [ -f "$${fold}_feature_set_weights.tmp_1" ] ; then \
+			echo "multiclass model detected" ; \
+			\
+			for i in `ls -1 *feature_set_weights.tmp* | cut.pl -d "_" -f -1` ; do \
+				echo $${fold}_$${i} ; \
+				\
+				paste.pl "$${fold}_$${i}" $${fold}_feature_set_weights.tmp_$${i} \
+				| tail -n +2 \
+				>> 1.tmp ; \
+				\
+				rm -f $${fold}_feature_set_weights.tmp_$${i} ; \
+				\
+			done ; \
+		\
+		\
+		else \
+			echo "defaultint to handling feature set weights from binary model" ; \
+			\
+			paste.pl "$${fold}" $${fold}_feature_set_weights.tmp \
+			| tail -n +2 \
+			>> 1.tmp ; \
+		\
+		\
+		fi ; \
+		rm -f $${fold}_feature_set_weights.tmp ; \
 		\
 	done ;
 	\
