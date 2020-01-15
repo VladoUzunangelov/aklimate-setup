@@ -1,6 +1,8 @@
 # vfriedl, July 2019 create stacked barplots for feature types used in reduced
 # feature models
 
+# chrisw modified/debugged
+
 # run this script in the parent directory of './models'.
 
 library(ggplot2)
@@ -13,6 +15,8 @@ outputfile = paste0(plot_dir, "colorfeature_proportion_barplot.png")
 
 # colors = c('coral2', 'darkolivegreen', 'darkorchid3', 'darkgoldenrod3')
 
+# need to define this since some model might not have all feature types
+ordered_feature_types <- c("GEXP", "METH", "CNVR", "MUTA")
 
 model_dir = "models/"
 
@@ -31,25 +35,19 @@ message("detect feature types from full models")
 file_list <- list.files(model_dir, pattern = "importance.tab", full.names = TRUE)
 message(file_list)
 
-test_dat <- read.table(paste0(model_dir, "R1:F1_aklimate_multiclass_feature_importance.tab"),
-  header = TRUE, sep = "\t")
-feature_types <- unique(sapply(as.character(test_dat$features), function(x) strsplit(x,
-  ":", fixed = T)[[1]][2]))
-print(feature_types)
-
 
 
 message("compute datatype proportions for each reduced model cutoff")
 
 # data frame holding the proportions for each feature type for each step
-props_df <- matrix(0, nrow = length(feature_types), ncol = length(steps), dimnames = list(feature_types,
+props_df <- matrix(0, nrow = length(ordered_feature_types), ncol = length(steps), dimnames = list(ordered_feature_types,
   steps))
 
 for (step in steps) {
 
   # data frame to hold the counts for each feature type in each file (i.e. cv fold)
-  feature_counts_df <- matrix(0, nrow = length(feature_types), ncol = length(file_list),
-    dimnames = list(feature_types, file_list))
+  feature_counts_df <- matrix(0, nrow = length(ordered_feature_types), ncol = length(file_list),
+    dimnames = list(ordered_feature_types, file_list))
 
   for (file in file_list) {
     dat <- read.table(file, header = TRUE, sep = "\t")
@@ -58,6 +56,7 @@ for (step in steps) {
     # the feature in the file
     features_complete <- sapply(as.character(dat$features), function(x) strsplit(x,
       ":", fixed = T)[[1]][2])
+
     if (length(features_complete) >= step) {
       features <- features_complete[1:step]
     } else {
@@ -65,7 +64,7 @@ for (step in steps) {
     }
 
     # add counts for each feature type to the data frame
-    for (ft in feature_types) {
+    for (ft in found_feature_types) {
       feature_counts_df[ft, file] <- sum(features == ft)
     }
 
@@ -73,7 +72,7 @@ for (step in steps) {
 
   # add proportions for each feature type to data frame
   total_num <- sum(feature_counts_df)
-  for (ft in feature_types) {
+  for (ft in ordered_feature_types) {
     props_df[ft, toString(step)] <- sum(feature_counts_df[ft, ])/total_num
   }
 }
@@ -91,7 +90,7 @@ message("generate plot")
 
 # sort props_df to always have the same ordering of feature types - HARDCODED FOR
 # NOW
-ordering <- c("GEXP", "METH", "CNVR", "MUTA")
+ordering <- ordered_feature_types
 props_df <- props_df[ordering, ]
 
 png(outputfile)
