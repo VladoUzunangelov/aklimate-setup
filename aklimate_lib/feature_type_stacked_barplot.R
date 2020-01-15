@@ -64,7 +64,7 @@ for (step in steps) {
     }
 
     # add counts for each feature type to the data frame
-    for (ft in found_feature_types) {
+    for (ft in features) {
       feature_counts_df[ft, file] <- sum(features == ft)
     }
 
