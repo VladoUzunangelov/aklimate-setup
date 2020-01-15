@@ -60,7 +60,7 @@ for (i in 1:num_files) {
 
   # Initialize empty list to store the aggregate of all of the balance accuracies
   # in this cohort stats = confM[[4]]
-  if (length(rownames(confM[["byClass"]])) == 1) {
+  if ("Balanced Accuracy" %in% names(confM[["byClass"]])) {
     message("detected results for binary classification model")
     stats <- unname(confM[["byClass"]]["Balanced Accuracy"])
 
