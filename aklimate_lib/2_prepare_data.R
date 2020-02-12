@@ -150,43 +150,50 @@ worker.f <- function(tasks) {
     idx.train <- rownames(splits)[splits[, i] == 0]
     idx.test <- setdiff(rownames(splits), idx.train)
 
-#	classification_type <- "binary"
-#	classification_type <- "multiclass"
-	classification_type <- CLASSIFICATION_TYPE
+  # classification_type <- "binary"
+  # classification_type <- "multiclass"
+    classification_type <- CLASSIFICATION_TYPE
+    message(paste0("classification_type: ", classification_type))
 
-    jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL,
-      list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
-        min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE,
-        weights = NULL, oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25,
-          ntree = 500)), list(topn = 5, subsetCV = TRUE, lamb = c(-8, 3),
-        cvlen = 200, type = "probability"), FALSE, TRUE)
+
+    args_list_1 <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
+      min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
+      oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
+
+    args_list_2 <- list(topn = 5, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
+
+    # train AKLIMATE model
+	# works with Spicer.R with md5sum: 71b8fbb55747b623d565960ff7737f73
+	# does not work with Spicer.R with md5sum: c1fffbc913a9a82571d6a00116c6dadd
+    jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL, args_list_1,
+      args_list_2, FALSE, TRUE)
 
     save(jklm, file = paste0(workDir, "/", i, "_junkle_final_model.RData"))
 
-    jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways,
-      NULL, FALSE)$preds
+    jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways, NULL,
+      FALSE)$preds
     jklm.preds <- apply(jklm.preds, 1, function(x) colnames(jklm.preds)[which.max(x)])
 
-    confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)),
-      labels[idx.test])
+    confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)), labels[idx.test])
 
-	if (classification_type=="binary") {
-		# for binary classification, use this
-		bacc<- unname(confM$byClass["Balanced Accuracy"]) 
-	} else if (classification_type=="multiclass") {
-		# for multiclass classification, use this
-		bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
-	} else {
-		message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=", CLASSIFICATION_TYPE))
-		stopifnot(FALSE)
-	}
+    # get BACC results
+    if (classification_type == "binary") {
+      # for binary classification, use this
+      bacc <- unname(confM$byClass["Balanced Accuracy"])
+    } else if (classification_type == "multiclass") {
+      # for multiclass classification, use this
+      bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
+    } else {
+      message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
+        CLASSIFICATION_TYPE))
+      stopifnot(FALSE)
+    }
+
 
     save(jklm.preds, confM, bacc, file = paste0(workDir, "/", i, "_junkle_final_model_stats_preds.RData"))
 
     return(bacc)
-
-
-  }
+  } # end of task
 
   return(res)
-}
+} # end of worker.f
