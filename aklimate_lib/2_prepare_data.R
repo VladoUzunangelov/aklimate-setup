@@ -153,25 +153,59 @@ worker.f <- function(tasks) {
   # classification_type <- "binary"
   # classification_type <- "multiclass"
     classification_type <- CLASSIFICATION_TYPE
-    message(paste0("classification_type: ", classification_type))
+    message(paste0(i, " classification_type: ", classification_type))
 
 
-    args_list_1 <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
+    message(paste0(i, " set params for junkle model"))
+    # dat, dat.grp, lbls, fsets, always.add=NULL, rf.pars=list(), junkle.pars=list(),
+    # store.kernels=FALSE, verbose=FALSE
+    junkle_training_data <- dat[idx.train, ]
+    junkle_datatypes <- suffs
+    junkle_training_labels <- labels[idx.train]
+    junkle_feature_sets <- pathways
+    junkle_always_add <- NULL
+
+    rf_params <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
       min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
       oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
 
-    args_list_2 <- list(topn = 5, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
+    junkle_params <- list(topn = 5, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
 
+    junkle_store_kernels <- FALSE
+    junkle_verbose <- TRUE
+
+
+    message(paste0(i, " train model"))
     # train AKLIMATE model
-	# works with Spicer.R with md5sum: 71b8fbb55747b623d565960ff7737f73
-	# does not work with Spicer.R with md5sum: c1fffbc913a9a82571d6a00116c6dadd
-    jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL, args_list_1,
-      args_list_2, FALSE, TRUE)
+    # works with Spicer.R with md5sum: 71b8fbb55747b623d565960ff7737f73
+    # does not work with Spicer.R with md5sum: c1fffbc913a9a82571d6a00116c6dadd
+    # jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL, rf_params,
+    #   junkle_params, FALSE, TRUE)
+
+    jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets,
+      junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
 
     save(jklm, file = paste0(workDir, "/", i, "_junkle_final_model.RData"))
 
-    jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways, NULL,
-      FALSE)$preds
+
+    message(paste0(i, " set params for predictions"))
+    # jklobj, dat, fsets, kernels=NULL, store.kernels=FALSE
+    # junkle_object <- jklm
+    junkle_predict_data <- dat[c(idx.train, idx.test), ]
+    # junkle_feature_sets <- pathways
+    junkle_kernels <- NULL
+    # junkle_store_kernels <- FALSE
+
+    # jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways, NULL,
+    #   FALSE)$preds
+
+
+    message(paste0(i, " make predictions"))
+    jklm.preds <- predict.junkle(jklm, junkle_predict_data, junkle_feature_sets,
+      junkle_kernels, junkle_store_kernels)$preds
+
+    message(paste0(i, " collect results"))
+
     jklm.preds <- apply(jklm.preds, 1, function(x) colnames(jklm.preds)[which.max(x)])
 
     confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)), labels[idx.test])
@@ -184,7 +218,7 @@ worker.f <- function(tasks) {
       # for multiclass classification, use this
       bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
     } else {
-      message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
+      message(paste0(i, " **ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
         CLASSIFICATION_TYPE))
       stopifnot(FALSE)
     }
