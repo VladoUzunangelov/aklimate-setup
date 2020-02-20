@@ -2,6 +2,8 @@
 
 ## copyright (c) 2019 Vlado Uzunangelov
 
+# CLASSIFICATION_TYPE <- "binary"
+# CLASSIFICATION_TYPE <- "multiclass"
 # NUMBER_OF_CPUS_TO_USE = 28
 LOW_EXPRESSION_FILTER = FALSE
 QUANTIZE_NUMERIC_DATA = FALSE
@@ -18,24 +20,23 @@ featureSetsDir <- paste0(cohortDir, "/p_store_files")
 modelsDir <- paste0(cohortDir, "/models")
 dataDir <- paste0(cohortDir, "/data")
 
-tasks <- 1:25
-message("tasks: ", tasks)
-
 ############################################################################
+
 
 message("load pathways")
 
-# p1 <- readSetList(paste0(featureSetsDir, '/pathcomm_pathways_cleaned')) p1 <-
-# p1[!grepl('[[:digit:]]_SMPDB$|Z_SMPDB$', names(p1))]
-p1 <- readSetList(paste0(featureSetsDir, "/pathcomm_pathways_cleaned_non_redundant_names.tsv"))
-p2 <- readSetList(paste0(featureSetsDir, "/genomic_position_sets.listt"))
-p3 <- readSetList(paste0(featureSetsDir, "/genesigdb_human.tab"))
-p4 <- readSetList(paste0(featureSetsDir, "/msigdb_c2_c5_no_c2_cp.tab"))
+# using one file of collected pathways.
+# The names of these pathways have been mapped to simple names.
+# This was done to avoid the continued problem of name collisions and the like.
+# collected_pathways_name_mapped.tsv
+p_collected <- readSetList(paste0(featureSetsDir, "/collected_pathways_name_mapped.tsv"))
+pathways <- c(p_collected)
 
-pathways <- c(p1, p2, p3, p4)
 max_size_of_pathways <- 1000
 pathways <- pathways[sapply(pathways, length) < max_size_of_pathways]
 
+# need to load the name mappings in order to map back to original pathway names
+p_name_mapping <- read.csv(file=paste0(featureSetsDir, "/pathway_name_mapping.tsv"), header = FALSE, sep = "\t", col.names = c("p_id", "p_name"))
 
 message("sanitize pathway names")
 
@@ -43,6 +44,8 @@ message("sanitize pathway names")
 names(pathways) <- gsub("[^\\w\\s]", "_", names(pathways), perl = TRUE)
 
 message(paste("number of pathways to use", length(names(pathways))))
+
+
 
 message("load labels")
 
@@ -52,6 +55,7 @@ labels <- factor(labels[, 1])
 lbls <- labels
 
 
+
 message("load CV fold splits")
 
 splits <- as.matrix(read.delim(paste0(dataDir, "/cv_folds.tsv"), check.names = F,
@@ -59,10 +63,15 @@ splits <- as.matrix(read.delim(paste0(dataDir, "/cv_folds.tsv"), check.names = F
 splits <- splits[, -1]
 
 
+
 message("set tasks and seeds")
 
 tasks <- colnames(splits)
 tasks <- tasks[1:25]
+#tasks <- c(tasks[1])
+
+message("tasks")
+message(tasks)
 
 # you can change the seeds - this is just to match initial runs seeds <- 11 *
 # (1:length(tasks)) names(seeds) <- tasks
@@ -164,6 +173,10 @@ cutoffs <- c(5, 10, 20, 50, 100, 200, 500, 1000, 1500)
 message("using reduced model sizes: ", cutoffs)
 
 reps.list <- lapply(1:5, function(x) tasks[seq(5 * (x - 1) + 1, 5 * x, 1)])
+#reps.list <- reps.list[1]
+#reps.list[[1]] <- c("R1:F1")
+message("reps.list")
+message(reps.list)
 
 message("building reduced models and predicting")
 acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
@@ -174,36 +187,56 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
 
       imps <- read.delim(paste0(modelsDir, "/", j, "_aklimate_multiclass_feature_importance.tab"),
         header = TRUE, row.names = 1)
+
       dat <- mlr::createDummyFeatures(dat)
+
       k.adj <- min(k, dim(imps)[1])  # just in case fewer important features than required by the cutoff
+
       rf <- ranger(data = cbind(data.frame(labels = labels[idx.train]), dat[idx.train,
         rownames(imps)[1:k.adj], drop = FALSE]), dependent.variable.name = "labels",
         always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
         num.trees = 3000, mtry = ceiling(k.adj/5), min.node.size = 1, case.weights = NULL,
         num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
         importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
+
       save(rf, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model.RData"))
+
       rf.preds <- predict(rf, dat[idx.test, rownames(imps)[1:k.adj]])$predictions
+
       rownames(rf.preds) <- idx.test
+
       save(rf.preds, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model_predictions.RData"))
 
-      confM <- caret::confusionMatrix(factor(apply(rf.preds[idx.test, ], 1,
-        which.max), levels = levels(labels)), labels[idx.test])
+      # confM <- caret::confusionMatrix(factor(apply(rf.preds[idx.test, ], 1,
+      # which.max), levels = levels(labels)), labels[idx.test])
+
+      # cm_data_old <- factor(apply(rf.preds[idx.test, ], 1, which.max), levels =
+      # levels(labels))
+
+      max_labels <- apply(rf.preds[idx.test, ], 1, which.max)
+      cm_data <- factor(sapply(max_labels, function(x) levels(labels)[x]),
+        levels = levels(labels))
+
+      cm_true_labels <- labels[idx.test]
+
+      confM <- caret::confusionMatrix(cm_data, cm_true_labels)
+
       save(confM, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model_stats.RData"))
 
 
-		classification_type <- CLASSIFICATION_TYPE
+      classification_type <- CLASSIFICATION_TYPE
 
-		if (classification_type=="binary") {
-			# for binary classification, use this
-			unname(confM$byClass["Balanced Accuracy"])
-		} else if (classification_type=="multiclass") {
-			# for multiclass classification, use this
-			mean(unname(confM$byClass[, "Balanced Accuracy"]))
-		} else {
-			message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=", CLASSIFICATION_TYPE))
-			stopifnot(FALSE)
-		}
+      if (classification_type == "binary") {
+        # for binary classification, use this
+        unname(confM$byClass["Balanced Accuracy"])
+      } else if (classification_type == "multiclass") {
+        # for multiclass classification, use this
+        mean(unname(confM$byClass[, "Balanced Accuracy"]))
+      } else {
+        message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
+          CLASSIFICATION_TYPE))
+        stopifnot(FALSE)
+      }
 
       ## mean(unname(confM$overall['Accuracy']))
     }
@@ -212,6 +245,10 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
 
   }
 }
+
+
+
+
 
 message("writing accuracy of reduced feature sets")
 colnames(acc.reduced) <- cutoffs
