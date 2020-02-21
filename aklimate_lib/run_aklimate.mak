@@ -22,6 +22,17 @@ TARGETS= \
 	labels.tsv \
 	\
 
+SUMMARY_TARGETS= \
+	bacc.tsv \
+	bacc_stats.tsv \
+	collect_predictions \
+	aklimate_sample_predictions.tsv \
+	sickle_plot.png \
+	datatype_stacked_bar_plots.png \
+	feature_importance_stats.tsv \
+	bal_acc_subtype_50_cutoff.png \
+	feature_set_weights.tsv \
+
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
 
@@ -558,7 +569,12 @@ labels.tsv:
 
 all: $(TARGETS)
 
-clean_all: clean_targets clean_tmp
+summary: $(SUMMARY_TARGETS)
+
+clean_all: clean_targets clean_tmp clean_summary
+
+clean_summary:
+	rm -f $(SUMMARY_TARGETS) ;
 
 clean_targets:
 	rm -f $(TARGETS) ;
