@@ -32,11 +32,13 @@ SUMMARY_TARGETS= \
 	feature_importance_stats.tsv \
 	bal_acc_subtype_50_cutoff.png \
 	feature_set_weights.tsv \
+	\
 
 REDUCED_MODELS_CUTOFFS= \
 	$(shell find ./models/ -type f -name "*rf_reduced_model_predictions.RData" | cut.pl -d "cutoff_" -f 2 | cut -d "_" -f 1| sort.pl | uniq)
 
 test:
+
 
 feature_set_weights.tsv:
 	rm -f 1.tmp ;
@@ -66,7 +68,7 @@ feature_set_weights.tsv:
 		\
 		\
 		else \
-			echo "defaultint to handling feature set weights from binary model" ; \
+			echo "defaulting to handling feature set weights from binary model" ; \
 			\
 			paste.pl "$${fold}" $${fold}_feature_set_weights.tmp \
 			| tail -n +2 \
@@ -79,7 +81,12 @@ feature_set_weights.tsv:
 	done ;
 	\
 	cut -f 2 1.tmp \
-	| cut.pl -d "_" -f 1--6 \
+	| sed -e 's/_MUTA//' \
+		-e 's/_CNVR//' \
+		-e 's/_METH//' \
+		-e 's/_GEXP//' \
+		-e 's/_[0-9]\+$$//' \
+	| cut.pl -d "_" -f 1--2 \
 	> 2.tmp ;
 	\
 	paste.pl 2.tmp 1.tmp \
@@ -88,9 +95,19 @@ feature_set_weights.tsv:
 	join.pl -r -1 1 -2 1 -o "__NONE__" 3.tmp ./p_store_files/pathway_name_mapping.tsv \
 	> 4.tmp ;
 	\
-	mv 4.tmp $@ ;
+	cut -f 1,2,5 4.tmp \
+	| sed -e 's/	/____/' \
+	| expand.pl \
+	> 5.tmp ;
 	\
-	rm -f 1.tmp 2.tmp 3.tmp 4.tmp ;
+	cat 5.tmp \
+	| row_stats.pl -h 0 -k 0 -allstats \
+	| sort.pl -h 1 -k -1 -r \
+	> 6.tmp ;
+	\
+	mv 6.tmp $@ ;
+	\
+	rm -f 1.tmp 2.tmp 3.tmp 4.tmp 5.tmp 6.tmp ;
 	\
 
 bal_acc_subtype_50_cutoff.png:
@@ -116,7 +133,7 @@ feature_importance_stats.tsv:
 	> 3.tmp ;
 	\
 	cat 3.tmp \
-	| sort.pl -h 1 -k 9 -r \
+	| sort.pl -h 1 -k -1 -r \
 	> 4.tmp ;
 	\
 	mv 4.tmp $@ ;
@@ -574,7 +591,7 @@ summary: $(SUMMARY_TARGETS)
 clean_all: clean_targets clean_tmp clean_summary
 
 clean_summary:
-	rm -f $(SUMMARY_TARGETS) ;
+	rm -rf $(SUMMARY_TARGETS) ;
 
 clean_targets:
 	rm -f $(TARGETS) ;
