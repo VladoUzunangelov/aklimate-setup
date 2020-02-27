@@ -54,7 +54,15 @@ labels <- as.matrix(read.delim(paste0(cohortDir, "/labels.tsv"), check.names = F
 labels <- factor(labels[, 1])
 lbls <- labels
 
-
+num_labels <- levels(labels)
+if (num_labels == 2) {
+  CLASSIFICATION_TYPE = "binary"
+} else if (num_labels > 2) {
+  CLASSIFICATION_TYPE = "multiclass"
+} else {
+  message(paste0("ERROR: detected ", num_labels, " labels"))
+  stopifnot(FALSE)
+}
 
 message("load CV fold splits")
 

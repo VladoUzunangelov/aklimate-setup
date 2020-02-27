@@ -121,6 +121,17 @@ labels <- as.matrix(read.delim("./labels.tsv", check.names = F, stringsAsFactors
   header = F, row.names = 1))
 labels <- factor(labels[, 1])
 
+num_labels <- levels(labels)
+if (num_labels == 2) {
+  CLASSIFICATION_TYPE = "binary"
+} else if (num_labels > 2) {
+  CLASSIFICATION_TYPE = "multiclass"
+} else {
+  message(paste0("ERROR: detected ", num_labels, " labels"))
+  stopifnot(FALSE)
+}
+
+message(paste0("Detected ", num_labels, " labels. Setting CLASSIFICATION_TYPE to ", CLASSIFICATION_TYPE))
 
 message("load CV fold splits")
 
