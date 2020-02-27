@@ -3,8 +3,9 @@
 
 ## check 2_run_aklimate.R for example directory structure
 
-message("validate classification type")
-stopifnot(CLASSIFICATION_TYPE=="binary" || CLASSIFICATION_TYPE=="multiclass")
+# no need to check classification type here. It is set by detecting number of labels in later scripts.
+#message("validate classification type")
+#stopifnot(CLASSIFICATION_TYPE=="binary" || CLASSIFICATION_TYPE=="multiclass")
 
 message("loading libraries")
 
