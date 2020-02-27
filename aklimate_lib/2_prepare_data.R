@@ -121,7 +121,7 @@ labels <- as.matrix(read.delim("./labels.tsv", check.names = F, stringsAsFactors
   header = F, row.names = 1))
 labels <- factor(labels[, 1])
 
-num_labels <- levels(labels)
+num_labels <- length(levels(labels))
 if (num_labels == 2) {
   CLASSIFICATION_TYPE = "binary"
 } else if (num_labels > 2) {
