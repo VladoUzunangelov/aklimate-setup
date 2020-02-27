@@ -11,11 +11,6 @@ COMBINED_MATRIX_FILE=$(DATA_DIR)/combined_matrix.tsv
 CV_SETS_FILE=$(DATA_DIR)/cv_folds.tsv
 
 TARGETS= \
-	feature_set_weights.tsv \
-	bal_acc_subtype_50_cutoff.png \
-	feature_importance_stats.tsv \
-	datatype_stacked_bar_plots.png \
-	sickle_plot.png \
 	cv_test_sample_predictions_full.tsv \
 	datatypes.tsv \
 	samples.tsv \
@@ -23,10 +18,12 @@ TARGETS= \
 	\
 
 SUMMARY_TARGETS= \
+	collected_aklimate_features.tsv \
 	bacc.tsv \
 	bacc_stats.tsv \
 	collect_predictions \
 	aklimate_sample_predictions.tsv \
+	cv_test_sample_predictions_full.tsv \
 	sickle_plot.png \
 	datatype_stacked_bar_plots.png \
 	feature_importance_stats.tsv \
@@ -39,6 +36,65 @@ REDUCED_MODELS_CUTOFFS= \
 
 test:
 
+# AKLIMATE pipeline assumes features reverse-ordered by importance and truncates the list at each cutoff.
+# The short list of features is then passed to ranger to build RF models.
+collected_aklimate_features.tsv:
+	rm -f 1.tmp ;
+	\
+	for cutoff in $(REDUCED_MODELS_CUTOFFS) ; do \
+		echo $${cutoff} ; \
+		\
+		rm -f a.tmp ; \
+		\
+		for fold in $(shell ls -1 ./models | grep "_aklimate_multiclass_feature_importance.tab" | cut.pl -d "_aklimate_multiclass_feature_importance.tab" -f 1 ) ; do \
+			echo $${cutoff}_$${fold} ; \
+			\
+			tail -n +2 "./models/$${fold}_aklimate_multiclass_feature_importance.tab" \
+			| sort.pl -r -h 0 -k 2 \
+			| head -n $${cutoff} \
+			>> a.tmp ; \
+			\
+		done ; \
+		\
+		cat a.tmp \
+		| expand.pl \
+		| fill.pl "0" \
+		| row_stats.pl -h 0 -k 0 -allstats \
+		| sort.pl -h 1 -k -1 -r \
+		> $${cutoff}_b.tmp ; \
+		\
+		head -n 1 $(COMBINED_MATRIX_FILE) \
+		| cut -f 1 \
+		> $${cutoff}_c.tmp ; \
+		\
+		cut -f 1 $${cutoff}_b.tmp \
+		| transpose.pl \
+		| cut -f 2- \
+		>> $${cutoff}_c.tmp ; \
+		\
+		source ~/softwares/venv/3/bin/activate && \
+			python ./tsv_to_json_lists.py \
+		< $${cutoff}_c.tmp \
+		> $${cutoff}_d.tmp \
+		; \
+		\
+		echo "$(THIS_DIR_NAME)_reduced_features_$${cutoff}" \
+		| cat - $${cutoff}_d.tmp \
+		> $${cutoff}_e.tmp ; \
+		\
+		transpose.pl $${cutoff}_e.tmp \
+		>> 1.tmp ; \
+		\
+	done ;
+	\
+	cat 1.tmp \
+	| cap.pl "Feature_Set_ID","TCGA_Projects","Features" \
+	> 2.tmp ;
+	\
+	mv 2.tmp $@ ;
+	\
+	rm -f a.tmp 1.tmp 2.tmp *_a.tmp *_b.tmp *_c.tmp *_d.tmp *_e.tmp ;
+	\
 
 feature_set_weights.tsv:
 	rm -f 1.tmp ;
@@ -288,7 +344,7 @@ cv_test_sample_predictions_reduced_%.tsv:
 		> train2.tmp \
 		; \
 		\
-		paste.pl train2.tmp "TEST_0" \
+		paste.pl train2.tmp "0" \
 		> train3.tmp ; \
 		\
 		source ~/softwares/venv/3/bin/activate && \
@@ -297,7 +353,7 @@ cv_test_sample_predictions_reduced_%.tsv:
 		> test1.tmp \
 		; \
 		\
-		paste.pl test1.tmp "TEST_1" \
+		paste.pl test1.tmp "1" \
 		> test2.tmp ; \
 		\
 		cat train3.tmp test2.tmp \
@@ -313,13 +369,15 @@ cv_test_sample_predictions_reduced_%.tsv:
 		\
 		cut.pl -f 1,5,4,2,3 c.tmp \
 		| sed -e 's/\:/	/' \
+			-e 's/	R\([0-9]\+\)	/	\1	/' \
+			-e 's/	F\([0-9]\+\)	/	\1	/' \
 		> d.tmp ; \
 		\
 		echo $(THIS_DIR_NAME) \
 		| cut -d "_" -f 3,4 \
 		| paste.pl -d "_" - "p" \
 		| tr "_" "|" \
-		| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|\2/' \
+		| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|AKLIMATE_\1_REDUCED_FEATURES_$*|\2/' \
 		> x.tmp ; \
 		\
 		cut -f 6 d.tmp \
@@ -350,7 +408,7 @@ cv_test_sample_predictions_reduced_%.tsv:
 	| cut -d "_" -f 3,4 \
 	| paste.pl -d "_" - "p" \
 	| tr "_" "|" \
-	| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|\2/' \
+	| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|AKLIMATE_\1_REDUCED_FEATURES_$*|\2/' \
 	> x.tmp ;
 	\
 	head -n 1 2.tmp \
