@@ -164,12 +164,12 @@ worker.f <- function(tasks) {
 	# Set nfold based on the size of the smallest class.
 	# We encountered situations where the nfold was larger than the size of smallest class.
 	# Best solution is to remove the tiny class, but here we attempt to keep all classes.
-	default_nfold = 5
-  num_folds = default_nfold
+	default_nfold <- 5
+  num_folds <- default_nfold
   for (class in levels(labels)) {
     training_labels <- labels[idx.train]
     training_set_for_class <- (training_labels)[training_labels[] == class]
-    num_folds = min(length(training_set_for_class), num_folds)
+    num_folds <- min(length(training_set_for_class), num_folds)
   }
   message("setting num_folds = ", num_folds)
 
