@@ -18,11 +18,10 @@ TARGETS= \
 	\
 
 SUMMARY_TARGETS= \
-	collected_aklimate_features.tsv \
+	predictions.tar.gz \
+	features.tsv.gz \
 	bacc.tsv \
 	bacc_stats.tsv \
-	collect_predictions \
-	aklimate_sample_predictions.tsv \
 	cv_test_sample_predictions_full.tsv \
 	sickle_plot.png \
 	datatype_stacked_bar_plots.png \
@@ -38,7 +37,81 @@ test:
 
 # AKLIMATE pipeline assumes features reverse-ordered by importance and truncates the list at each cutoff.
 # The short list of features is then passed to ranger to build RF models.
-collected_aklimate_features.tsv:
+# The format for this file is described at https://www.synapse.org/#!Synapse:syn8011998/wiki/600601
+features.tsv.gz:
+	head -n 1 $(COMBINED_MATRIX_FILE) \
+	| cut -f 1 \
+	> cohort.tmp ;
+	\
+	rm -f 1.tmp ;
+	\
+	for fold in $(shell ls -1 ./models | grep "_aklimate_multiclass_feature_importance.tab" | cut.pl -d "_aklimate_multiclass_feature_importance.tab" -f 1 ) ; do \
+		echo $${fold} ; \
+		\
+		tail -n +2 "./models/$${fold}_aklimate_multiclass_feature_importance.tab" \
+		| sort.pl -r -h 0 -k 2 \
+		> a.tmp ; \
+		\
+		for cutoff in $(REDUCED_MODELS_CUTOFFS) ; do \
+			echo $${fold}_$${cutoff} ; \
+			\
+			head -n $${cutoff} a.tmp \
+			| cut -f 1 \
+			| transpose_fast.pl \
+			> b.tmp ; \
+			\
+			cat cohort.tmp b.tmp \
+			> c.tmp ; \
+			\
+			source ~/softwares/venv/3/bin/activate && \
+				python ./tsv_to_json_lists.py \
+			< c.tmp \
+			> d.tmp \
+			; \
+			\
+			\
+			echo "$(THIS_DIR_NAME)" \
+			| cut.pl -d "_" -f 1,3,4 \
+			> aa.tmp ; \
+			\
+			echo "$${fold}_reduced_$${cutoff}_features" \
+			| cat aa.tmp - \
+			| transpose.pl \
+			| sed -e 's/	/_/g' \
+			> bb.tmp ; \
+			\
+			cat bb.tmp d.tmp \
+			> e.tmp ; \
+			\
+			transpose_fast.pl e.tmp \
+			> f.tmp ; \
+			\
+			cat f.tmp \
+			>> 1.tmp ; \
+			\
+			rm -f aa.tmp bb.tmp b.tmp c.tmp e.tmp f.tmp ; \
+			\
+		done ; \
+		\
+		rm -f a.tmp ; \
+	\
+	done ; \
+	\
+	cat 1.tmp \
+	| cap.pl "Feature_Set_ID","TCGA_Projects","Features" \
+	> 2.tmp ;
+	\
+	gzip -c 2.tmp \
+	> 3.tmp ;
+	\
+	mv 3.tmp $@ ;
+	\
+	rm -f 1.tmp 2.tmp 3.tmp a.tmp b.tmp c.tmp cohort.tmp d.tmp e.tmp f.tmp aa.tmp bb.tmp ;
+	\
+
+# AKLIMATE pipeline assumes features reverse-ordered by importance and truncates the list at each cutoff.
+# The short list of features is then passed to ranger to build RF models.
+collected_aklimate_features_old.tsv:
 	rm -f 1.tmp ;
 	\
 	for cutoff in $(REDUCED_MODELS_CUTOFFS) ; do \
@@ -218,234 +291,184 @@ sickle_plot.png:
 	rm -f 1.tmp ;
 	\
 
-aklimate_sample_predictions.tsv:
-	cat $(shell find ./collect_predictions -type f -name "cv_test_sample_predictions_*" | head -n 1) \
-	> 1.tmp ;
+# collect sample classification predictions
+# file format is at https://www.synapse.org/#!Synapse:syn8011998/wiki/600601
+predictions.tar.gz:
 	\
-	grep -v '^#' 1.tmp \
-	| cut -f 1-5 \
-	| sed -e 's/	/___/g' \
-	> 2.tmp ;
+	rm -rf predictions ;
 	\
+	mkdir -p predictions ;
 	\
-	rm -f comments.tmp ;
-	\
-	for file in $(shell find ./collect_predictions -type f -name "cv_test_sample_predictions_*") ; do \
-		echo $${file} ; \
-		\
-		grep -v '^#' $${file} \
-		> a.tmp ; \
-		\
-		cut -f 1-5 a.tmp \
-		| sed -e 's/	/___/g' \
-		> b.tmp ; \
-		\
-		cut -f 6 a.tmp \
-		| paste.pl b.tmp - \
-		> c.tmp ; \
-		\
-		join.pl -1 1 -2 1 -o "__NONE__" 2.tmp c.tmp \
-		> d.tmp ; \
-		\
-		grep '^#' $${file} \
-		>> comments.tmp ; \
-		\
-		mv d.tmp 2.tmp ; \
-		\
-		rm -f a.tmp b.tmp c.tmp d.tmp ; \
-		\
-	done ;
-	\
-	head -n 1 comments.tmp \
-	> 3.tmp ;
-	\
-	cat comments.tmp \
-	| grep -vf 3.tmp \
-	| cat 3.tmp - \
-	> 4.tmp ;
-	\
-	\
-	cut -f 1 2.tmp \
-	| sed -e 's/___/	/g' \
-	> x.tmp ;
-	\
-	tail -n +2 x.tmp \
-	| sed -e 's/	R/	/' \
-		-e 's/	F/	/' \
-		-e 's/	TEST_/	/' \
-	> y.tmp ;
-	\
-	head -n 1 x.tmp \
-	| cat - y.tmp \
-	> z.tmp ;
-	\
-	cut -f 2- 2.tmp \
-	| paste.pl z.tmp - \
-	> 5.tmp ;
-	\
-	\
-	cat 4.tmp 5.tmp \
-	> 6.tmp ;
-	\
-	\
-	mv 6.tmp $@ ;
-	\
-	rm -f 1.tmp 2.tmp 3.tmp 4.tmp 5.tmp 6.tmp comments.tmp x.tmp y.tmp z.tmp ;
-	\
-
-collect_predictions:
-	rm -rf $@_temp ;
-	\
-	for cutoff in $(REDUCED_MODELS_CUTOFFS) ; do \
-		echo $${cutoff} ; \
-		\
-		make cv_test_sample_predictions_reduced_$${cutoff}.tsv ; \
-	done ;
-	\
-	mkdir -p $@_temp ;
-	\
-	find . -maxdepth 1 -type f -name "cv_test_sample_predictions_reduced_*.tsv" -exec mv {} ./$@_temp/. \; ;
-	\
-	mv $@_temp $@ ;
-	\
-
-# R5:F5_cutoff_500_rf_reduced_model_predictions.RData
-# might need to use jq to write out sample label probabilities.
-cv_test_sample_predictions_reduced_%.tsv:
 	cut -f 1,2 $(DATA_DIR)/cv_folds.tsv \
+	| tail -n +2 \
 	> labeled_samples.tmp ;
 	\
-	rm -f 1.tmp ;
+	for fold in $(shell ls -1 ./models | grep "_aklimate_multiclass_feature_importance.tab" | cut.pl -d "_aklimate_multiclass_feature_importance.tab" -f 1 ) ; do \
+		echo $${fold} ; \
+		\
+		cut -f 1 labeled_samples.tmp \
+		| cap.pl "Sample_ID" \
+		> 1.tmp ; \
+		\
+		rm -f header.tmp ; \
+		\
+		for cutoff in $(REDUCED_MODELS_CUTOFFS) ; do \
+			echo "$${fold}_$${cutoff}" ; \
+			\
+			Rscript get_aklimate_prediction_probabilities.R \
+				reduced \
+				test \
+				"./models/$${fold}_cutoff_$${cutoff}_rf_reduced_model_predictions.RData" \
+			; \
+			\
+			Rscript get_aklimate_prediction_probabilities.R \
+				reduced \
+				train \
+				"./models/$${fold}_cutoff_$${cutoff}_rf_reduced_model.RData" \
+				"./models/$${fold}_junkle_final_model.RData" \
+			; \
+			\
+			\
+			cat reduced_train_probs.tsv \
+			| sed -e 's/	X/	/g' \
+			> train1.tmp ; \
+			\
+			source ~/softwares/venv/3/bin/activate && \
+			python ./tmp_aklimate_prediction_matrix_to_json.py \
+			< train1.tmp \
+			> train2.tmp \
+			; \
+			\
+			paste.pl train2.tmp "0" \
+			> train3.tmp ; \
+			\
+			source ~/softwares/venv/3/bin/activate && \
+			python ./tmp_aklimate_prediction_matrix_to_json.py \
+			< reduced_test_probs.tsv \
+			> test1.tmp \
+			; \
+			\
+			paste.pl test1.tmp "1" \
+			> test2.tmp ; \
+			\
+			\
+			cat train3.tmp test2.tmp \
+			| paste.pl - "$${fold}	$${cutoff}" \
+			> a.tmp ; \
+			\
+			join.pl -1 1 -2 1 -o "__NONE__" labeled_samples.tmp a.tmp \
+			> b.tmp ; \
+			\
+			cat b.tmp \
+			| cap.pl "Sample_ID","Label","prediction","Test","Repeat:Fold","cutoff" \
+			> c.tmp ; \
+			\
+			cut.pl -f 1,-2,4,2,3 c.tmp \
+			> d.tmp ; \
+			\
+			cat d.tmp \
+			| sed -e 's/\:/	/' \
+				-e 's/	R\([0-9]\+\)	/	\1	/' \
+				-e 's/	F\([0-9]\+\)	/	\1	/' \
+			> e.tmp ; \
+			\
+			\
+			echo "$(THIS_DIR)" \
+			| cut.pl -d "/" -f -1 \
+			| sed -e 's/^AKLIMATE_TEMPLATE_/AKLIMATE_/' \
+			| cut -d "_" -f 1,2,3 \
+			> f.tmp ; \
+			\
+			cut -d "_" -f 1,2 f.tmp \
+			> aklimate_cohort.tmp ; \
+			\
+			cut -d "_" -f 3 f.tmp \
+			> model_date.tmp ; \
+			\
+			cat aklimate_cohort.tmp \
+			| cat - model_date.tmp \
+			> prediction_colname.tmp ; \
+			\
+			echo "$${fold}" \
+			>> prediction_colname.tmp ; \
+			\
+			echo "reduced" \
+			>> prediction_colname.tmp ; \
+			\
+			echo "$${cutoff}" \
+			>> prediction_colname.tmp ; \
+			\
+			transpose.pl prediction_colname.tmp \
+			| sed -e 's/	/_/g' \
+			> prediction_colname_2.tmp ; \
+			\
+			cat prediction_colname_2.tmp prediction_colname_2.tmp \
+			| sed -e '1s/$$/_features/' \
+			| tac \
+			> prediction_colname_3.tmp ; \
+			\
+			cat model_date.tmp \
+			>> prediction_colname_3.tmp ; \
+			\
+			echo "p" \
+			>> prediction_colname_3.tmp ; \
+			\
+			transpose.pl prediction_colname_3.tmp \
+			| sed -e 's/	/\|/g' \
+			> prediction_colname_4.tmp ; \
+			\
+			\
+			head -n 1 e.tmp \
+			| transpose.pl \
+			| head -n 5 \
+			| cat - prediction_colname_4.tmp \
+			| transpose.pl \
+			> x.tmp ; \
+			\
+			tail -n +2 e.tmp \
+			| cat x.tmp - \
+			> y.tmp ; \
+			\
+			cut.pl -f 1,-1 y.tmp \
+			> z.tmp ; \
+			\
+			join.pl -1 1 -2 1 -o "NA" 1.tmp z.tmp \
+			| fill.pl "NA" \
+			> zz.tmp ; \
+			\
+			mv zz.tmp 1.tmp ; \
+			\
+			\
+			echo "#`cat prediction_colname_2.tmp`	AKLIMATE model trained on $${cutoff} features and the $${fold} CV_fold" \
+			>> header.tmp ; \
+			\
+			\
+			rm -f reduced_train_probs.tsv reduced_test_probs.tsv ; \
+			\
+			done ; \
+		\
+		\
+		cut.pl -f 1--2 y.tmp \
+		| join.pl -1 1 -2 1 - 1.tmp \
+		> 2.tmp ; \
+		\
+		cat tarball.txt \
+		| sed -e 's/_organized//i' \
+			-e 's/^/#/' \
+		| cat - header.tmp 2.tmp \
+		> 3.tmp ; \
+		\
+		mv 3.tmp predictions/predictions_`cat aklimate_cohort.tmp`_$${fold}.tsv ; \
+		\
+		rm -f 1.tmp 2.tmp 3.tmp aklimate_cohort.tmp a.tmp b.tmp c.tmp d.tmp e.tmp f.tmp header.tmp model_date.tmp prediction_colname_2.tmp prediction_colname_3.tmp prediction_colname_4.tmp prediction_colname.tmp test1.tmp test2.tmp train1.tmp train2.tmp train3.tmp x.tmp y.tmp z.tmp ; \
+		\
+		done ; \
 	\
-	for repeat_fold in $(shell ls -1 ./models/*_rf_reduced_model_predictions.RData | grep "_cutoff_$*_rf_" | xargs -n 1 basename | cut -d "_" -f 1 ) ; do \
-		echo $${repeat_fold} ; \
-		\
-		Rscript get_aklimate_prediction_probabilities.R \
-			reduced \
-			test \
-			"./models/$${repeat_fold}_cutoff_$*_rf_reduced_model_predictions.RData" \
-		; \
-		\
-		Rscript get_aklimate_prediction_probabilities.R \
-			reduced \
-			train \
-			"./models/$${repeat_fold}_cutoff_$*_rf_reduced_model.RData" \
-			"./models/$${repeat_fold}_junkle_final_model.RData" \
-		; \
-		\
-		\
-		cat reduced_train_probs.tsv \
-		| sed -e 's/	X/	/g' \
-		> train1.tmp ; \
-		\
-		source ~/softwares/venv/3/bin/activate && \
-		python ./tmp_aklimate_prediction_matrix_to_json.py \
-		< train1.tmp \
-		> train2.tmp \
-		; \
-		\
-		paste.pl train2.tmp "0" \
-		> train3.tmp ; \
-		\
-		source ~/softwares/venv/3/bin/activate && \
-		python ./tmp_aklimate_prediction_matrix_to_json.py \
-		< reduced_test_probs.tsv \
-		> test1.tmp \
-		; \
-		\
-		paste.pl test1.tmp "1" \
-		> test2.tmp ; \
-		\
-		cat train3.tmp test2.tmp \
-		| paste.pl - "$${repeat_fold}" \
-		> a.tmp ; \
-		\
-		join.pl -1 1 -2 1 -o "__NONE__" labeled_samples.tmp a.tmp \
-		> b.tmp ; \
-		\
-		cat b.tmp \
-		| awk 'BEGIN{FS="\t";OFS=FS} {if (NR==1) {$$2="Label"; $$3="predicted_label"; $$4="Test"; $$5="Repeat:Fold"} print $$0}' \
-		> c.tmp ; \
-		\
-		cut.pl -f 1,5,4,2,3 c.tmp \
-		| sed -e 's/\:/	/' \
-			-e 's/	R\([0-9]\+\)	/	\1	/' \
-			-e 's/	F\([0-9]\+\)	/	\1	/' \
-		> d.tmp ; \
-		\
-		echo $(THIS_DIR_NAME) \
-		| cut -d "_" -f 3,4 \
-		| paste.pl -d "_" - "p" \
-		| tr "_" "|" \
-		| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|AKLIMATE_\1_REDUCED_FEATURES_$*|\2/' \
-		> x.tmp ; \
-		\
-		cut -f 6 d.tmp \
-		| tail -n +2 \
-		| cat x.tmp - \
-		> y.tmp ; \
-		\
-		paste.pl d.tmp y.tmp \
-		| cut.pl -f 1--3,-1 \
-		> z.tmp ; \
-		\
-		head -n 1 z.tmp \
-		> header.tmp ; \
-		\
-		tail -n +2 z.tmp \
-		>> 1.tmp ; \
-		\
-		rm -f a.tmp b.tmp c.tmp d.tmp test1.tmp test2.tmp train1.tmp train2.tmp train3.tmp x.tmp y.tmp z.tmp ; \
-		\
-	done ;
+	tar -zcvf predictions.tar.gz predictions/ ;
 	\
-	cat header.tmp 1.tmp \
-	> 2.tmp ;
+	rm -f labeled_samples.tmp ;
 	\
-	\
-	\
-	echo $(THIS_DIR_NAME) \
-	| cut -d "_" -f 3,4 \
-	| paste.pl -d "_" - "p" \
-	| tr "_" "|" \
-	| sed -e 's/^\([a-zA-Z0-9]\+\)|\(.*\)$$/AKLIMATE_\1_REDUCED_$*|AKLIMATE_\1_REDUCED_FEATURES_$*|\2/' \
-	> x.tmp ;
-	\
-	head -n 1 2.tmp \
-	| cut.pl -f 1--2 \
-	| paste.pl - "`cat x.tmp`" \
-	> new_header.tmp ;
-	\
-	tail -n +2 2.tmp \
-	| cat new_header.tmp - \
-	> 3.tmp ;
-	\
-	\
-	cat tarball.txt \
-	> comment_section.tmp ;
-	\
-	echo "" \
-	>> comment_section.tmp ;
-	\
-	cat x.tmp \
-	| paste.pl - "reduced AKLIMATE model with $* features" \
-	>> comment_section.tmp ;
-	\
-	echo "" \
-	>> comment_section.tmp ;
-	\
-	cat comment_section.tmp \
-	| sed -e 's/^/\#/' \
-	| cat - 3.tmp \
-	> 4.tmp ;
-	\
-	\
-	\
-	mv 4.tmp $@ ;
-	\
-	rm -f 1.tmp 2.tmp labeled_sample.tmp ;
-	\
-	rm -f 3.tmp 4.tmp comment_section.tmp header.tmp labeled_samples.tmp new_header.tmp x.tmp ;
+	rm -rf predictions ;
 	\
 
 # Rscript get_aklimate_prediction_probabilities.R full test $${file} ;
