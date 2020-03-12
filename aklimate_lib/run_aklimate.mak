@@ -604,7 +604,7 @@ bacc_stats.tsv:bacc.tsv
 bacc.tsv:
 	rm -f 1.tmp ;
 	\
-	for file in $(shell find . -type f -name "*_junkle_final_model_stats_preds.RData") ; do \
+	for file in $(shell find ./models -type f -name "*_junkle_final_model_stats_preds.RData") ; do \
 		echo $${file} ; \
 		\
 		echo "$${file}" \
