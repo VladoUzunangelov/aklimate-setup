@@ -74,6 +74,8 @@ def compactJson(obj):
 def processLines(matrixFileLines):
     logging.debug("%d lines" % len(matrixFileLines))
     columnNames = matrixFileLines.pop(0).rstrip("\r\n").split("\t")
+    # need to pop out the "sampleID" field
+    columnNames.pop(0)
     logging.debug("columnNames: %s" % (str(columnNames)))
 
     rangeObj = {}
