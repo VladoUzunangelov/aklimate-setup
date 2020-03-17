@@ -291,6 +291,7 @@ sickle_plot.png:
 	rm -f 1.tmp ;
 	\
 
+
 # collect sample classification predictions
 # file format is at https://www.synapse.org/#!Synapse:syn8011998/wiki/600601
 predictions.tar.gz:
@@ -442,10 +443,11 @@ predictions.tar.gz:
 			echo "#`cat prediction_colname_2.tmp`	AKLIMATE model trained on $${cutoff} features and the $${fold} CV_fold" \
 			>> header.tmp ; \
 			\
+			rm -f reduced_test_probs.tsv reduced_train_probs.tsv ; \
 			\
-			rm -f reduced_train_probs.tsv reduced_test_probs.tsv ; \
+			rm -f a.tmp b.tmp c.tmp d.tmp e.tmp f.tmp model_date.tmp prediction_colname_2.tmp prediction_colname_3.tmp prediction_colname_4.tmp prediction_colname.tmp test1.tmp test2.tmp train1.tmp train2.tmp train3.tmp x.tmp z.tmp ; \
 			\
-			done ; \
+		done ; \
 		\
 		\
 		cut.pl -f 1--2 y.tmp \
@@ -460,9 +462,10 @@ predictions.tar.gz:
 		\
 		mv 3.tmp predictions/predictions_`cat aklimate_cohort.tmp`_$${fold}.tsv ; \
 		\
-		rm -f 1.tmp 2.tmp 3.tmp aklimate_cohort.tmp a.tmp b.tmp c.tmp d.tmp e.tmp f.tmp header.tmp model_date.tmp prediction_colname_2.tmp prediction_colname_3.tmp prediction_colname_4.tmp prediction_colname.tmp test1.tmp test2.tmp train1.tmp train2.tmp train3.tmp x.tmp y.tmp z.tmp ; \
+		rm -f 1.tmp 2.tmp 3.tmp aklimate_cohort.tmp header.tmp y.tmp ; \
 		\
 		done ; \
+	\
 	\
 	tar -zcvf predictions.tar.gz predictions/ ;
 	\
