@@ -1,0 +1,315 @@
+#!/usr/bin/env Rscript
+
+LOAD_PATHWAYS = FALSE
+LOW_EXPRESSION_FILTER = FALSE
+QUANTIZE_NUMERIC_DATA = FALSE
+LOAD_SAMPLE_DATA_MATRIX = TRUE
+
+message("Set some variables, load some libraries, source some paths.")
+
+ncpus <- NUMBER_OF_CPUS_TO_USE
+stopifnot(is.numeric(ncpus), ncpus > 0, ncpus%%1 == 0)
+message("using ", ncpus, " CPUs")
+
+cohortDir <- getwd()
+featureSetsDir <- paste0(cohortDir, "/p_store_files")
+modelsDir <- paste0(cohortDir, "/models")
+dataDir <- paste0(cohortDir, "/data")
+
+############################################################################
+
+
+if (LOAD_PATHWAYS) {
+
+  message("load pathways")
+
+  # using one file of collected pathways.  The names of these pathways have been
+  # mapped to simple names.  This was done to avoid the continued problem of name
+  # collisions and the like.  collected_pathways_name_mapped.tsv
+  p_collected <- readSetList(paste0(featureSetsDir, "/collected_pathways_name_mapped.tsv"))
+  pathways <- c(p_collected)
+
+  max_size_of_pathways <- 1000
+  pathways <- pathways[sapply(pathways, length) < max_size_of_pathways]
+
+  # need to load the name mappings in order to map back to original pathway names
+  p_name_mapping <- read.csv(file = paste0(featureSetsDir, "/pathway_name_mapping.tsv"),
+    header = FALSE, sep = "\t", col.names = c("p_id", "p_name"))
+
+  message("sanitize pathway names")
+
+  ## probably a good idea to sanitize the name a bit
+  names(pathways) <- gsub("[^\\w\\s]", "_", names(pathways), perl = TRUE)
+
+  message(paste("number of pathways to use", length(names(pathways))))
+
+} else {
+  message("skip loading pathways")
+}
+
+
+
+message("load labels")
+
+labels <- as.matrix(read.delim(paste0(cohortDir, "/labels.tsv"), check.names = F,
+  stringsAsFactors = F, header = F, row.names = 1))
+labels <- factor(labels[, 1])
+lbls <- labels
+
+num_labels <- length(levels(labels))
+if (num_labels == 2) {
+  CLASSIFICATION_TYPE = "binary"
+} else if (num_labels > 2) {
+  CLASSIFICATION_TYPE = "multiclass"
+} else {
+  message(paste0("ERROR: detected ", num_labels, " labels"))
+  stopifnot(FALSE)
+}
+
+message("load CV fold splits")
+
+splits <- as.matrix(read.delim(paste0(dataDir, "/cv_folds.tsv"), check.names = F,
+  stringsAsFactors = F, header = TRUE, row.names = 1))
+splits <- splits[, -1]
+
+
+
+message("set tasks and seeds")
+
+tasks <- colnames(splits)
+# tasks <- tasks[1:25] tasks <- c(tasks[1])
+
+message("tasks")
+message(tasks)
+
+# you can change the seeds - this is just to match initial runs seeds <- 11 *
+# (1:length(tasks)) names(seeds) <- tasks
+
+#############################
+
+
+if (LOAD_SAMPLE_DATA_MATRIX) {
+  message("load sample data")
+
+  ## MIR is also there - about 800 MIRs right now probably best to not include them
+  ## - I have a scheme to indluce them by putting a MIR in every pathway that has
+  ## one of its targets, but it didn't work well when I tested it
+  nomir = c("MUTA", "CNVR", "METH", "GEXP")
+  suffs <- list(nomir)
+
+  dat <- read.delim(paste0(dataDir, "/combined_matrix.tsv"), header = T, row.names = 1,
+    check.names = FALSE)
+  dat <- dat[, -1]
+
+
+  message("meth mapper")
+
+  ## load('../data/meth_mappers.RData') move this to a makefile or something - take
+  ## a couple of minutes to compute and should only be done once
+  hm450 <- get450k()
+  meth.mapper <- getNearestGene(hm450)
+
+  updated.names <- foreach(i = iter(colnames(dat)), .combine = c) %dopar% {
+    if (grepl("METH", i, ignore.case = TRUE)) {
+      cg <- strsplit(i, ":")[[1]][4]
+      gsub(paste0(cg, "::"), paste0(cg, ":", meth.mapper[cg, 4], ":"), i)
+    } else {
+      i
+    }
+  }
+
+  colnames(dat) <- updated.names
+
+  if (LOW_EXPRESSION_FILTER) {
+    message("filter out low expression features")
+    # Theo has named all gene expression features with 'N:GEXP:'
+
+    sampleIDs <- rownames(dat)
+    exp_matrix <- dat[sampleIDs, grepl(paste0("N:GEXP:"), colnames(dat))]
+
+    message(paste("number of features in input expression matrix", length(colnames(exp_matrix))))
+
+    exp_means <- colMeans(exp_matrix)
+    exp_sds <- apply(exp_matrix, 2, sd)
+
+    ## exclude genes that are in the bottom quartile by mean or sd
+    exp_features_upper75_by_mean = names(exp_means)[exp_means > quantile(exp_means,
+      probs = 0.25)]
+    exp_features_upper75_by_sd = names(exp_sds)[exp_sds > quantile(exp_sds, probs = 0.25)]
+    exp_all_features <- colnames(exp_matrix)
+    exp_keep_features <- intersect(exp_features_upper75_by_mean, exp_features_upper75_by_sd)
+    exp_drop_features <- setdiff(exp_all_features, exp_keep_features)
+
+    full_keep_features <- setdiff(colnames(dat), exp_drop_features)
+
+    message(paste("number of expression features to drop", length(exp_drop_features)))
+
+    exp_matrix <- NULL
+
+    message(paste("number of features in full data matrix", length(colnames(dat))))
+
+    dat <- dat[sampleIDs, full_keep_features]
+    message(paste("number of features in new data matrix", length(colnames(dat))))
+
+  } else {
+    message("skip low expression filter")
+  }
+
+  if (QUANTIZE_NUMERIC_DATA) {
+    message("quantize numeric datatypes")
+
+    dat <- foreach(datatype_str = iter(nomir[!grepl("MUTA|CNVR", nomir)]), .combine = cbind) %do%
+      {
+        message(paste("quantize ", datatype_str))
+        quantize.data(dat[sampleIDs, grepl(paste0("N:", datatype_str, ":"),
+          colnames(dat))], nbr = 5, idx = sampleIDs)
+      }
+  } else {
+    message("skip quantizing numeric datatypes")
+  }
+
+  # aklimate expects a dataframe, not a matrix
+  dat <- as.data.frame(dat)
+
+} else {
+  message("skip loading sample data matrix")
+}
+
+
+#######################################################
+
+first_repeat <- 1
+last_repeat <- 100
+
+reps.list <- lapply(first_repeat:last_repeat, function(x) tasks[seq(5 * (x - 1) +
+  1, 5 * x, 1)])
+# reps.list <- lapply(1:5, function(x) tasks[seq(5 * (x - 1) + 1, 5 * x, 1)])
+# reps.list <- reps.list[1] reps.list[[1]] <- c('R1:F1')
+message("reps.list")
+message(reps.list)
+
+
+# stopifnot(FALSE)
+
+
+message("building reduced models and predicting")
+acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
+  preds <- foreach(j = iter(i), .combine = c) %do% {
+    idx.train <- rownames(splits)[splits[, j] == 0]
+    idx.test <- setdiff(rownames(splits), idx.train)
+
+
+    dat <- mlr::createDummyFeatures(dat)
+
+
+    message(paste0(j, " train"))
+
+    training_sample_labels <- labels[idx.train]
+
+    features <- colnames(dat)
+    training_feature_data <- dat[idx.train, features, drop = FALSE]
+
+    training_sample_data <- cbind(data.frame(labels = training_sample_labels),
+      training_feature_data)
+
+
+
+    # rf <- ranger(data = cbind(data.frame(labels = labels[idx.train]),
+    # dat[idx.train, rownames(imps)[1:k.adj], drop = FALSE]), dependent.variable.name
+    # = 'labels', always.split.variables = NULL, classification = TRUE,
+    # sample.fraction = 0.5, num.trees = 3000, mtry = ceiling(k.adj/5), min.node.size
+    # = 1, case.weights = NULL, num.threads = 3, probability = TRUE,
+    # respect.unordered.factors = FALSE, importance = 'none', write.forest = TRUE,
+    # keep.inbag = TRUE, replace = FALSE)
+
+
+
+    rf <- ranger(data = training_sample_data, dependent.variable.name = "labels",
+      always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
+      num.trees = 3000, mtry = ceiling(length(features)/5), min.node.size = 1,
+      case.weights = NULL, num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
+      importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
+
+
+
+    save(rf, file = paste0(modelsDir, "/", j, "_collected_features_rf_reduced_model.RData"))
+
+
+
+
+
+    message(paste0(j, " test"))
+
+
+    test_feature_data <- dat[idx.test, features]
+
+    rf.preds <- predict(rf, test_feature_data)$predictions
+
+    rownames(rf.preds) <- idx.test
+
+    save(rf.preds, file = paste0(modelsDir, "/", j, "_collected_features_rf_reduced_model_predictions.RData"))
+
+
+
+
+    message(paste0(j, " collect predictions"))
+
+    max_labels <- apply(rf.preds[idx.test, ], 1, which.max)
+    cm_data <- factor(sapply(max_labels, function(x) levels(labels)[x]), levels = levels(labels))
+
+    cm_true_labels <- labels[idx.test]
+
+    confM <- caret::confusionMatrix(cm_data, cm_true_labels)
+
+    save(confM, file = paste0(modelsDir, "/", j, "_collected_features_rf_reduced_model_stats.RData"))
+
+
+    classification_type <- CLASSIFICATION_TYPE
+
+    if (classification_type == "binary") {
+      # for binary classification, use this
+      unname(confM$byClass["Balanced Accuracy"])
+    } else if (classification_type == "multiclass") {
+      # for multiclass classification, use this
+      mean(unname(confM$byClass[, "Balanced Accuracy"]))
+    } else {
+      message(paste0("**ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
+        CLASSIFICATION_TYPE))
+      stopifnot(FALSE)
+    }
+
+    ## mean(unname(confM$overall['Accuracy']))
+  }
+
+  mean(preds)
+
+
+}
+
+
+
+
+
+
+message("writing accuracy of reduced feature sets")
+write.df(data.frame(acc.reduced, check.names = FALSE), "repetition", paste0(modelsDir,
+  "/balanced_accuracy_collected_features.tab"))
+
+######################################################
+
+message("write overall stats for reduced models")
+acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
+  preds <- foreach(j = iter(i), .combine = c) %do% {
+    load(paste0(modelsDir, "/", j, "_collected_features_rf_reduced_model_stats.RData"))
+    mean(unname(confM$overall["Accuracy"]))
+  }
+
+  mean(preds)
+
+}
+
+# colnames(acc.reduced) <- cutoffs
+write.df(data.frame(acc.reduced, check.names = FALSE), "repetition", paste0(modelsDir,
+  "/accuracy_collected_features.tab"))
+
+message("DONE!")
