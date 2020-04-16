@@ -5,6 +5,9 @@
 
 QUANTIZE_NUMERIC_DATA = FALSE
 
+homeDir <- "./p_store_files"
+workDir <- "./models/"
+
 message("load sample data")
 
 ## MIR is also there - about 800 MIRs right now probably best to not include them
@@ -19,10 +22,21 @@ dat <- dat[, -1]
 
 message("meth mapper")
 
-## load('../data/meth_mappers.RData') move this to a makefile or something - take
-## a couple of minutes to compute and should only be done once
-hm450 <- get450k()
-meth.mapper <- getNearestGene(hm450)
+saved_meth_mapper_file <- "meth_mapper_hm450_20200416.RData"
+found_meth_mapper_file <- TRUE %in% (list.files(path=homeDir) == saved_meth_mapper_file)
+
+saved_meth_mapper_file <- paste0(homeDir, "/meth_mapper_hm450_20200416.RData")
+if (found_meth_mapper_file) {
+  message(paste0("found ", saved_meth_mapper_file))
+} else {
+  message(paste0("getting a new meth.mapper to save to "), saved_meth_mapper_file)
+  hm450 <- get450k()
+  meth.mapper <- getNearestGene(hm450)
+  save(meth.mapper, file = saved_meth_mapper_file)
+}
+
+message(paste0("loading meth.mapper from "), saved_meth_mapper_file)
+load(saved_meth_mapper_file)
 
 updated.names <- foreach(i = iter(colnames(dat)), .combine = c) %dopar% {
   if (grepl("METH", i, ignore.case = TRUE)) {
@@ -80,9 +94,6 @@ if (QUANTIZE_NUMERIC_DATA) {
 dat <- as.data.frame(dat)
 
 message("load pathways")
-
-homeDir <- "./p_store_files"
-workDir <- "./models/"
 
 # p1 <- readSetList(paste0(homeDir, '/pathcomm_pathways_cleaned')) p1 <-
 # p1[!grepl('[[:digit:]]_SMPDB$|Z_SMPDB$', names(p1))]
