@@ -2,6 +2,7 @@
 
 #chrisw 20190520
 #install various packages for running AKLIMATE
+#Dockerfile calls this script to install into ubuntu:18.04 base image
 
 apt update
 apt upgrade -y

@@ -1,0 +1,91 @@
+>
+>
+> sessionInfo()
+R version 3.4.4 (2018-03-15)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 18.04.2 LTS
+
+Matrix products: default
+BLAS: /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
+LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+
+locale:
+[1] C
+
+attached base packages:
+[1] stats4    parallel  stats     graphics  grDevices utils     datasets
+[8] methods   base
+
+other attached packages:
+ [1] FDb.InfiniumMethylation.hg19_2.2.0
+ [2] org.Hs.eg.db_3.5.0
+ [3] TxDb.Hsapiens.UCSC.hg19.knownGene_3.2.2
+ [4] GenomicFeatures_1.30.3
+ [5] AnnotationDbi_1.40.0
+ [6] Biobase_2.38.0
+ [7] GenomicRanges_1.30.3
+ [8] GenomeInfoDb_1.14.0
+ [9] IRanges_2.12.0
+[10] S4Vectors_0.16.0
+[11] BiocGenerics_0.24.0
+[12] SPICER_0.1.0
+[13] plyr_1.8.6
+[14] stringr_1.4.0
+[15] pracma_2.2.5
+[16] purrr_0.3.2
+[17] proxy_0.4-23
+[18] Similarity_0.1
+[19] ROCR_1.0-7
+[20] gplots_3.0.1.1
+[21] caret_6.0-84
+[22] ggplot2_3.1.1
+[23] lattice_0.20-35
+[24] dplyr_0.8.1
+[25] ranger_0.11.2
+[26] abind_1.4-5
+[27] doParallel_1.0.14
+[28] iterators_1.0.10
+[29] foreach_1.4.4
+
+loaded via a namespace (and not attached):
+ [1] nlme_3.1-131               matrixStats_0.54.0
+ [3] bitops_1.0-6               lubridate_1.7.4
+ [5] bit64_0.9-7                progress_1.2.2
+ [7] httr_1.4.0                 tools_3.4.4
+ [9] R6_2.4.0                   rpart_4.1-13
+[11] KernSmooth_2.23-15         DBI_1.0.0
+[13] lazyeval_0.2.2             colorspace_1.4-1
+[15] nnet_7.3-12                withr_2.1.2
+[17] tidyselect_0.2.5           prettyunits_1.0.2
+[19] RMySQL_0.10.17             bit_1.1-14
+[21] compiler_3.4.4             DelayedArray_0.4.1
+[23] rtracklayer_1.38.3         caTools_1.17.1.2
+[25] scales_1.0.0               digest_0.6.19
+[27] Rsamtools_1.30.0           XVector_0.18.0
+[29] pkgconfig_2.0.2            rlang_0.3.4
+[31] RSQLite_2.1.1              generics_0.0.2
+[33] BiocParallel_1.12.0        gtools_3.8.1
+[35] ModelMetrics_1.2.2         RCurl_1.95-4.12
+[37] magrittr_1.5               GenomeInfoDbData_1.0.0
+[39] Matrix_1.2-12              Rcpp_1.0.4.6
+[41] munsell_0.5.0              stringi_1.4.3
+[43] SummarizedExperiment_1.8.1 MASS_7.3-49
+[45] zlibbioc_1.24.0            recipes_0.1.5
+[47] grid_3.4.4                 blob_1.1.1
+[49] gdata_2.18.0               crayon_1.3.4
+[51] Biostrings_2.46.0          splines_3.4.4
+[53] hms_0.4.2                  pillar_1.4.1
+[55] reshape2_1.4.3             codetools_0.2-15
+[57] biomaRt_2.34.2             XML_3.98-1.20
+[59] glue_1.3.1                 RcppArmadillo_0.9.860.2.0
+[61] data.table_1.12.2          RcppParallel_4.4.3
+[63] gtable_0.3.0               assertthat_0.2.1
+[65] gower_0.2.1                prodlim_2018.04.18
+[67] class_7.3-14               survival_2.41-3
+[69] timeDate_3043.102          tibble_2.1.3
+[71] GenomicAlignments_1.14.2   memoise_1.1.0
+[73] lava_1.6.5                 ipred_0.9-9
+>
+>
+>
+>

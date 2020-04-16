@@ -1,6 +1,8 @@
 #chrisw 20190520
 #build an image for running AKLIMATE
 
+# NOTE: See notes in dockerfile_scripts about issue with using current versions of R packages.
+
 FROM ubuntu:18.04
 
 ENV tbb_os linux
@@ -20,4 +22,4 @@ COPY ./dockerfile_scripts /dockerfile_scripts
 RUN ["ln", "-s", "/data/repos", "/root/repos"]
 
 RUN ["bash", "/dockerfile_scripts/install_apt_stuff.sh"]
-RUN ["bash", "/dockerfile_scripts/install_r_stuff.sh"]
+RUN ["bash", "/dockerfile_scripts/install_r_stuff_no_spicer.sh"]

@@ -1,0 +1,6 @@
+#chrisw 20190520
+#build an image for running AKLIMATE
+
+FROM stuartlab/aklimate:dev_no_spicer
+
+RUN ["bash", "/dockerfile_scripts/install_r_stuff_spicer.sh"]

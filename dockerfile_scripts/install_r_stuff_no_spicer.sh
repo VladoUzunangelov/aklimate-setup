@@ -14,9 +14,4 @@ R -e 'source("https://bioconductor.org/biocLite.R")'
 R -e 'BiocInstaller::biocLite(c("ComplexHeatmap","FDb.InfiniumMethylation.hg19"))'
 R -e 'devtools::install_github("VladoUzunangelov/similarity")'
 
-# SPICER needs:
-R -e 'install.packages("Rcpp", type = "source")'
-R -e 'install.packages(c("plyr", "RcppArmadillo"))'
-R -e 'devtools::install_github("VladoUzunangelov/SPICER")'
-
 #TODO do we also need "/home/ubuntu/repos/tcga_scripts/utils.R" ?
