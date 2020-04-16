@@ -28,8 +28,9 @@ aklimateWorkDir <- "/data"
 source(paste0(aklimateWorkDir, "/repos/tcga_scripts/utils.R"), chdir = TRUE)
 source(paste0(aklimateWorkDir, "/repos/junkle/junkle-utils.R"), chdir = TRUE)
 source(paste0(aklimateWorkDir, "/repos/junkle/junkle.R"), chdir = TRUE)
-source(paste0(aklimateWorkDir, "/repos/Spicer/Spicer.R"), chdir = TRUE)
-source(paste0(aklimateWorkDir, "/repos/Spicer/Spicer-classify.R"), chdir = TRUE)
+library(SPICER)
+# source(paste0(aklimateWorkDir, "/repos/Spicer/Spicer.R"), chdir = TRUE)
+# source(paste0(aklimateWorkDir, "/repos/Spicer/Spicer-classify.R"), chdir = TRUE)
 
 ## need to install mySQL first sudo apt-get install libmariadbclient-dev then in R
 ## source('https://bioconductor.org/biocLite.R')
