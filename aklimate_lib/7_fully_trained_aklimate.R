@@ -220,10 +220,22 @@ junkle_training_labels <- labels[idx.train]
 junkle_feature_sets <- pathways
 junkle_always_add <- NULL
 
+df_for_oob.cv <- data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500)
+
+# I got this error:
+# [1] "Finished kernel construction"
+#Error in 1:which(cumsum(ll) > kcv$pars[kcv$best.id, "nkern"])[1] :
+#  NA/NaN argument
+#>
+#
+# To fix it, adjust num_of_trees (not oob.cv) by increasing from the dafault (1000).
+
+num_of_trees = 1000
+# num_of_trees = 1500
 
 rf_params <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
-  min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
-  oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
+  min.nfeat = 15, ntree = num_of_trees, sample.frac = 0.5, replace = FALSE, weights = NULL,
+  oob.cv = df_for_oob.cv)
 
 
 # Set nfold based on the size of the smallest class.  We encountered situations
