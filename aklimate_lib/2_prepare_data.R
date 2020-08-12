@@ -6,7 +6,7 @@
 QUANTIZE_NUMERIC_DATA = FALSE
 
 homeDir <- "./p_store_files"
-workDir <- "./models/"
+workDir <- "./models"
 
 message("load sample data")
 
@@ -167,100 +167,115 @@ worker.f <- function(tasks) {
 
   res <- foreach(i = iter(tasks)) %do% {
 
-    set.seed(seeds[i], kind = "L'Ecuyer-CMRG")
+    stats_preds_file_name = paste0(i, "_junkle_final_model_stats_preds.RData")
+    stats_preds_file_path = paste0(workDir, "/", stats_preds_file_name)
 
-    idx.train <- rownames(splits)[splits[, i] == 0]
-    idx.test <- setdiff(rownames(splits), idx.train)
-
-	# Set nfold based on the size of the smallest class.
-	# We encountered situations where the nfold was larger than the size of smallest class.
-	# Best solution is to remove the tiny class, but here we attempt to keep all classes.
-	default_nfold <- 5
-  num_folds <- default_nfold
-  for (class in levels(labels)) {
-    training_labels <- labels[idx.train]
-    training_set_for_class <- (training_labels)[training_labels[] == class]
-    num_folds <- min(length(training_set_for_class), num_folds)
-  }
-  message("setting num_folds = ", num_folds)
-
-
-  # classification_type <- "binary"
-  # classification_type <- "multiclass"
-    classification_type <- CLASSIFICATION_TYPE
-    message(paste0(i, " classification_type: ", classification_type))
-
-
-    message(paste0(i, " set params for junkle model"))
-    # dat, dat.grp, lbls, fsets, always.add=NULL, rf.pars=list(), junkle.pars=list(),
-    # store.kernels=FALSE, verbose=FALSE
-    junkle_training_data <- dat[idx.train, ]
-    junkle_datatypes <- suffs
-    junkle_training_labels <- labels[idx.train]
-    junkle_feature_sets <- pathways
-    junkle_always_add <- NULL
-
-    rf_params <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
-      min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
-      oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
-
-    junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
-
-    junkle_store_kernels <- FALSE
-    junkle_verbose <- TRUE
-
-
-    message(paste0(i, " train model"))
-    # train AKLIMATE model
-    # works with Spicer.R with md5sum: 71b8fbb55747b623d565960ff7737f73
-    # does not work with Spicer.R with md5sum: c1fffbc913a9a82571d6a00116c6dadd
-    # jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL, rf_params,
-    #   junkle_params, FALSE, TRUE)
-
-    jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets,
-      junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
-
-    save(jklm, file = paste0(workDir, "/", i, "_junkle_final_model.RData"))
-
-
-    message(paste0(i, " set params for predictions"))
-    # jklobj, dat, fsets, kernels=NULL, store.kernels=FALSE
-    # junkle_object <- jklm
-    junkle_predict_data <- dat[c(idx.train, idx.test), ]
-    # junkle_feature_sets <- pathways
-    junkle_kernels <- NULL
-    # junkle_store_kernels <- FALSE
-
-    # jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways, NULL,
-    #   FALSE)$preds
-
-
-    message(paste0(i, " make predictions"))
-    jklm.preds <- predict.junkle(jklm, junkle_predict_data, junkle_feature_sets,
-      junkle_kernels, junkle_store_kernels)$preds
-
-    message(paste0(i, " collect results"))
-
-    jklm.preds <- apply(jklm.preds, 1, function(x) colnames(jklm.preds)[which.max(x)])
-
-    confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)), labels[idx.test])
-
-    # get BACC results
-    if (classification_type == "binary") {
-      # for binary classification, use this
-      bacc <- unname(confM$byClass["Balanced Accuracy"])
-    } else if (classification_type == "multiclass") {
-      # for multiclass classification, use this
-      bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
+    if (TRUE %in% (list.files(path=workDir) == stats_preds_file_name)) {
+      message(paste0("loading stats_preds from file: ", stats_preds_file_path))
+      load(stats_preds_file_path)
     } else {
-      message(paste0(i, " **ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
-        CLASSIFICATION_TYPE))
-      stopifnot(FALSE)
+      set.seed(seeds[i], kind = "L'Ecuyer-CMRG")
+
+      idx.train <- rownames(splits)[splits[, i] == 0]
+      idx.test <- setdiff(rownames(splits), idx.train)
+
+    	# Set nfold based on the size of the smallest class.
+    	# We encountered situations where the nfold was larger than the size of smallest class.
+    	# Best solution is to remove the tiny class, but here we attempt to keep all classes.
+    	default_nfold <- 5
+      num_folds <- default_nfold
+      for (class in levels(labels)) {
+        training_labels <- labels[idx.train]
+        training_set_for_class <- (training_labels)[training_labels[] == class]
+        num_folds <- min(length(training_set_for_class), num_folds)
+      }
+      message("setting num_folds = ", num_folds)
+
+
+    # classification_type <- "binary"
+    # classification_type <- "multiclass"
+      classification_type <- CLASSIFICATION_TYPE
+      message(paste0(i, " classification_type: ", classification_type))
+
+
+      message(paste0(i, " set params for junkle model"))
+      # dat, dat.grp, lbls, fsets, always.add=NULL, rf.pars=list(), junkle.pars=list(),
+      # store.kernels=FALSE, verbose=FALSE
+      junkle_training_data <- dat[idx.train, ]
+      junkle_datatypes <- suffs
+      junkle_training_labels <- labels[idx.train]
+      junkle_feature_sets <- pathways
+      junkle_always_add <- NULL
+
+      rf_params <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
+        min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
+        oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
+
+      junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
+
+      junkle_store_kernels <- FALSE
+      junkle_verbose <- TRUE
+
+
+      message(paste0(i, " train model"))
+      # train AKLIMATE model
+      # works with Spicer.R with md5sum: 71b8fbb55747b623d565960ff7737f73
+      # does not work with Spicer.R with md5sum: c1fffbc913a9a82571d6a00116c6dadd
+      # jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL, rf_params,
+      #   junkle_params, FALSE, TRUE)
+
+      model_filename = paste0(i, "_junkle_final_model.RData")
+
+      if (TRUE %in% (list.files(path=workDir) == model_filename)) {
+        model_file_path = paste0(workDir, "/", model_filename)
+        message(paste0("loading model from file: ", model_file_path))
+        load(model_file_path)
+      } else {
+        jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets,
+          junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
+
+        save(jklm, file = paste0(workDir, "/", model_filename))
+      }
+
+
+      message(paste0(i, " set params for predictions"))
+      # jklobj, dat, fsets, kernels=NULL, store.kernels=FALSE
+      # junkle_object <- jklm
+      junkle_predict_data <- dat[c(idx.train, idx.test), ]
+      # junkle_feature_sets <- pathways
+      junkle_kernels <- NULL
+      # junkle_store_kernels <- FALSE
+
+      # jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways, NULL,
+      #   FALSE)$preds
+
+
+      message(paste0(i, " make predictions"))
+      jklm.preds <- predict.junkle(jklm, junkle_predict_data, junkle_feature_sets,
+        junkle_kernels, junkle_store_kernels)$preds
+
+      message(paste0(i, " collect results"))
+
+      jklm.preds <- apply(jklm.preds, 1, function(x) colnames(jklm.preds)[which.max(x)])
+
+      confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)), labels[idx.test])
+
+      # get BACC results
+      if (classification_type == "binary") {
+        # for binary classification, use this
+        bacc <- unname(confM$byClass["Balanced Accuracy"])
+      } else if (classification_type == "multiclass") {
+        # for multiclass classification, use this
+        bacc <- mean(unname(confM$byClass[, "Balanced Accuracy"]))
+      } else {
+        message(paste0(i, " **ERROR** CLASSIFICATION_TYPE must be binary or multiclass. CLASSIFICATION_TYPE=",
+          CLASSIFICATION_TYPE))
+        stopifnot(FALSE)
+      }
+
+
+      save(jklm.preds, confM, bacc, file = paste0(workDir, "/", i, "_junkle_final_model_stats_preds.RData"))
     }
-
-
-    save(jklm.preds, confM, bacc, file = paste0(workDir, "/", i, "_junkle_final_model_stats_preds.RData"))
-
     return(bacc)
   } # end of task
 
