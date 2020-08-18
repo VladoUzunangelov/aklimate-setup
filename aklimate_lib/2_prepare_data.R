@@ -211,7 +211,20 @@ worker.f <- function(tasks) {
         min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
         oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
 
-      junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
+      # small number underflow with rcpp might cause error like this:
+      # Error in { : task 8 failed - "NA/NaN argument"
+      # and also many slow convergence messages
+      # changing lamb range may correct this
+      junkle_lamb = c(-5, 0)
+      junkle_lamb = c(-15, 0)
+
+      # this is the setting used for TMP
+      junkle_lamb = c(-8, 3)
+
+      message("using lamb:")
+      message(paste0(" ", junkle_lamb))
+
+      junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = junkle_lamb, cvlen = 200, type = "probability")
 
       junkle_store_kernels <- FALSE
       junkle_verbose <- TRUE
@@ -225,16 +238,17 @@ worker.f <- function(tasks) {
       #   junkle_params, FALSE, TRUE)
 
       model_filename = paste0(i, "_junkle_final_model.RData")
+      model_file_path = paste0(workDir, "/", model_filename)
 
       if (TRUE %in% (list.files(path=workDir) == model_filename)) {
-        model_file_path = paste0(workDir, "/", model_filename)
         message(paste0("loading model from file: ", model_file_path))
         load(model_file_path)
       } else {
         jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets,
           junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
 
-        save(jklm, file = paste0(workDir, "/", model_filename))
+        message(paste0("model training completed. saving model to file: ", model_file_path))
+        save(jklm, file = model_file_path)
       }
 
 
