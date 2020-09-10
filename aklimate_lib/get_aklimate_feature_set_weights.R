@@ -5,15 +5,20 @@ argspec <- c("get_aklimate_feature_set_weights.R
 Usage:
   Rscript get_aklimate_feature_set_weights.R arg1
 Example:
-\tRscript get_aklimate_feature_set_weights.R arg1 arg2 arg3 arg4
+\tRscript get_aklimate_feature_set_weights.R arg1 arg2
 Options:
 \targ1 is a filename to load the AKLIMATE model, such as R1:F1_junkle_final_model.RData.
 \targ2 if supplied, is the output filename. Defaults to AKLIMATE_feature_set_weights.tsv.
 ")
 
-write_feature_set_weights_to_file <- function(feature_set_weights, filename) {
-  write.df(data.frame(feature_set_weights), row.names.id = "feature_set_name",
-    filename)
+write_feature_set_weights_to_file <- function(feature_set_weights, classes, filename) {
+
+  a <- cbind(read.table(text = names(feature_set_weights)), feature_set_weights)
+  a$class_1 <- unname(sapply(feature_set_weights, function(x)classes[1]))
+  a$class_2 <- unname(sapply(feature_set_weights, function(x)classes[2]))
+  a[[names(a)[1]]] <- NULL
+
+  write.df(a, row.names.id = "feature_set_name", filename)
 }
 
 check_if_binary_or_multiclass_model <- function(jklm_model) {
@@ -50,7 +55,9 @@ main <- function(argv) {
   if (classification_type == "binary") {
 
     weights_named_vector <- model[["sorted_kern_weight"]]
-    write_feature_set_weights_to_file(weights_named_vector, outfilename)
+    classes <- sort(model[["opt"]][["classes"]])
+
+    write_feature_set_weights_to_file(weights_named_vector, classes, outfilename)
 
   } else {
 
@@ -59,7 +66,9 @@ main <- function(argv) {
     for (i in 1:length(model)) {
       message("i=", i)
       weights_named_vector <- model[[i]][["sorted_kern_weight"]]
-      write_feature_set_weights_to_file(weights_named_vector, paste0(outfilename,
+      classes <- sort(model[[i]][["opt"]][["classes"]])
+
+      write_feature_set_weights_to_file(weights_named_vector, classes, paste0(outfilename,
         "_", i))
     }
   }

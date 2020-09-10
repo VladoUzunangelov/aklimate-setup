@@ -15,7 +15,7 @@ Options:
 \t\treduced test - XXX_reduced_model_predictions.RData
 \t\treduced train - XXX_reduced_model.RData
 \targ4 is a filename required just for retrieving sampleIDs for reduced model training set probs:
-\t\treduced train - XXX_junkle_final_model.RData
+\t\treduced train - XXX_junkle_final_model.RData OR XXX_idx_train_labels.RData
 ")
 
 
@@ -38,13 +38,26 @@ get_reduced_model_test_probs <- function(filename, outFile = "reduced_test_probs
 }
 
 get_reduced_model_train_probs <- function(filename1, filename2, outFile = "reduced_train_probs.tsv") {
-    load(filename1)
-    load(filename2)
+  load(filename1)
+  load(filename2)
+
+  if (exists("training_sample_labels")) {
+
+    # for debugging.... checking if prediction matches true label z <-
+    # sapply(training_sample_labels, function(x) { levels(training_sample_labels)[x]
+    # }) a <- cbind(rf$predictions, z)
+
+    ids <- names(training_sample_labels)
+
+  } else {
     ids <- jklm$idx.train
-    pred <- data.frame(rf$predictions)
-    rownames(pred)<-ids
-    write.df(pred,row.names.id = "sampleID", outFile)
+  }
+  pred <- data.frame(rf$predictions)
+  rownames(pred) <- ids
+
+  write.df(pred, row.names.id = "sampleID", outFile)
 }
+
 
 main <- function(argv) {
     print("argv below:")

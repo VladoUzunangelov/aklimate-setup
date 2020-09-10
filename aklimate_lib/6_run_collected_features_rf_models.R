@@ -108,10 +108,10 @@ if (LOAD_SAMPLE_DATA_MATRIX) {
 
 
 
-  saved_meth_mapper_file <- "meth_mapper_hm450_20200416.RData"
+  saved_meth_mapper_file <- "meth_mapper.RData"
   found_meth_mapper_file <- TRUE %in% (list.files(path=homeDir) == saved_meth_mapper_file)
 
-  saved_meth_mapper_file <- paste0(homeDir, "/meth_mapper_hm450_20200416.RData")
+  saved_meth_mapper_file <- paste0(homeDir, "/", saved_meth_mapper_file)
   if (found_meth_mapper_file) {
     message(paste0("found ", saved_meth_mapper_file))
   } else {
@@ -227,25 +227,24 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
     training_sample_data <- cbind(data.frame(labels = training_sample_labels),
       training_feature_data)
 
+    save(training_sample_labels, file = paste0(modelsDir, "/", j, "_idx_train_labels.RData"))
 
+    # REMOVE THIS TO RUN EXPERIMENTS
+    next
 
-    # rf <- ranger(data = cbind(data.frame(labels = labels[idx.train]),
-    # dat[idx.train, rownames(imps)[1:k.adj], drop = FALSE]), dependent.variable.name
-    # = 'labels', always.split.variables = NULL, classification = TRUE,
-    # sample.fraction = 0.5, num.trees = 3000, mtry = ceiling(k.adj/5), min.node.size
-    # = 1, case.weights = NULL, num.threads = 3, probability = TRUE,
-    # respect.unordered.factors = FALSE, importance = 'none', write.forest = TRUE,
-    # keep.inbag = TRUE, replace = FALSE)
+	# setting importance="impurity_corrected" will compute Gini Importance, or Mean Decrease in Impurity (MDI)
+  # https://alexisperrier.com/datascience/2015/08/27/feature-importance-random-forests-gini-accuracy.html
+  # vlado recommends importance="permutation", Mean Decrease in Accuracy (MDA)
 
-
+    importance_option <- "none"
+    # importance_option <- "impurity_corrected"
+    # importance_option <- "permutation"
 
     rf <- ranger(data = training_sample_data, dependent.variable.name = "labels",
       always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
       num.trees = 3000, mtry = ceiling(length(features)/5), min.node.size = 1,
       case.weights = NULL, num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
-      importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
-
-
+      importance = importance_option, write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
 
     save(rf, file = paste0(modelsDir, "/", j, "_collected_features_rf_reduced_model.RData"))
 
@@ -300,7 +299,6 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
 
 
 }
-
 
 
 
