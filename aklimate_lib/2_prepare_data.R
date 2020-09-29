@@ -176,6 +176,8 @@ worker.f <- function(tasks) {
     } else {
       set.seed(seeds[i], kind = "L'Ecuyer-CMRG")
 
+      # description of AKLIMATE params is available at: https://github.com/VladoUzunangelov/aklimate
+
       idx.train <- rownames(splits)[splits[, i] == 0]
       idx.test <- setdiff(rownames(splits), idx.train)
 
