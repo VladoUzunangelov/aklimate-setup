@@ -211,6 +211,13 @@ worker.f <- function(tasks) {
         min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
         oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
 
+      # common warning message:
+      # The duality gap has been closing very slowly indicating slow convergence.You should examine your kernels for multicollinearity and or change regularization parameters.Alternatively you can increase minIter or decrease tolMinIter.
+
+      # MKL solver is converging very slowly.
+      # address this by using different range of regularization parameter tuning as below.
+      # The values are log2 scale, so negative values means very close to zero, i.e. low regularization
+
       # small number underflow with rcpp might cause error like this:
       # Error in { : task 8 failed - "NA/NaN argument"
       # and also many slow convergence messages
