@@ -250,8 +250,24 @@ for (class in levels(labels)) {
 }
 message("setting num_folds = ", num_folds)
 
+# common warning message:
+# The duality gap has been closing very slowly indicating slow convergence.You should examine your kernels for multicollinearity and or change regularization parameters.Alternatively you can increase minIter or decrease tolMinIter.
 
-junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = c(-8, 3), cvlen = 200, type = "probability")
+# MKL solver is converging very slowly.
+# address this by using different range of regularization parameter tuning as below.
+# The values are log2 scale, so negative values means very close to zero, i.e. low regularization
+
+# small number underflow with rcpp might cause error like this:
+# Error in { : task 8 failed - "NA/NaN argument"
+# and also many slow convergence messages
+# changing lamb range may correct this
+junkle_lamb = c(-5, 0)
+junkle_lamb = c(-15, 0)
+
+# this is the setting used for TMP
+junkle_lamb = c(-8, 3)
+
+junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = junkle_lamb, cvlen = 200, type = "probability")
 
 junkle_store_kernels <- FALSE
 junkle_verbose <- TRUE
