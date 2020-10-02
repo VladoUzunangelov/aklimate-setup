@@ -19,6 +19,7 @@ cohortDir <- getwd()
 featureSetsDir <- paste0(cohortDir, "/p_store_files")
 modelsDir <- paste0(cohortDir, "/models")
 dataDir <- paste0(cohortDir, "/data")
+homeDir <- featureSetsDir
 
 ############################################################################
 
