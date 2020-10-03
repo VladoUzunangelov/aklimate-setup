@@ -204,46 +204,70 @@ message("building reduced models and predicting")
 acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
   foreach(k = iter(cutoffs), .combine = c) %do% {
     preds <- foreach(j = iter(i), .combine = c) %do% {
+
+      stats_file_name = paste0(j, "_cutoff_", k, "_rf_reduced_model_stats.RData")
+      preds_file_name = paste0(j, "_cutoff_", k, "_rf_reduced_model_predictions.RData")
+      model_file_name = paste0(j, "_cutoff_", k, "_rf_reduced_model.RData")
+      feature_importance_file_name = paste0(j, "_aklimate_multiclass_feature_importance.tab")
+
+      stats_file_path = paste0(modelsDir, "/", stats_file_name)
+      preds_file_path = paste0(modelsDir, "/", preds_file_name)
+      model_file_path = paste0(modelsDir, "/", model_file_name)
+      feature_importance_file_path = paste0(modelsDir, "/", feature_importance_file_name)
+
       idx.train <- rownames(splits)[splits[, j] == 0]
       idx.test <- setdiff(rownames(splits), idx.train)
 
-      imps <- read.delim(paste0(modelsDir, "/", j, "_aklimate_multiclass_feature_importance.tab"),
-        header = TRUE, row.names = 1)
+      imps <- read.delim((feature_importance_file_path), header = TRUE, row.names = 1)
 
       dat <- mlr::createDummyFeatures(dat)
 
       k.adj <- min(k, dim(imps)[1])  # just in case fewer important features than required by the cutoff
 
-      rf <- ranger(data = cbind(data.frame(labels = labels[idx.train]), dat[idx.train,
-        rownames(imps)[1:k.adj], drop = FALSE]), dependent.variable.name = "labels",
-        always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
-        num.trees = 3000, mtry = ceiling(k.adj/5), min.node.size = 1, case.weights = NULL,
-        num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
-        importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
+      if (TRUE %in% (list.files(path=modelsDir) == model_file_name)) {
+        message(paste0("loading model from file: ", model_file_path))
+        load(model_file_path)
+      } else {
+        rf <- ranger(data = cbind(data.frame(labels = labels[idx.train]), dat[idx.train,
+          rownames(imps)[1:k.adj], drop = FALSE]), dependent.variable.name = "labels",
+          always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
+          num.trees = 3000, mtry = ceiling(k.adj/5), min.node.size = 1, case.weights = NULL,
+          num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
+          importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
 
-      save(rf, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model.RData"))
+        save(rf, file = model_file_path)
+      }
 
-      rf.preds <- predict(rf, dat[idx.test, rownames(imps)[1:k.adj]])$predictions
+      if (TRUE %in% (list.files(path=modelsDir) == preds_file_name)) {
+        message(paste0("loading preds from file: ", preds_file_path))
+        load(preds_file_path)
+      } else {
+        rf.preds <- predict(rf, dat[idx.test, rownames(imps)[1:k.adj]])$predictions
+        rownames(rf.preds) <- idx.test
 
-      rownames(rf.preds) <- idx.test
+        save(rf.preds, preds_file_path)
+      }
 
-      save(rf.preds, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model_predictions.RData"))
+      if (TRUE %in% (list.files(path=modelsDir) == stats_file_name)) {
+        message(paste0("loading stats from file: ", stats_file_path))
+        load(stats_file_path)
+      } else {
+        # confM <- caret::confusionMatrix(factor(apply(rf.preds[idx.test, ], 1,
+        # which.max), levels = levels(labels)), labels[idx.test])
 
-      # confM <- caret::confusionMatrix(factor(apply(rf.preds[idx.test, ], 1,
-      # which.max), levels = levels(labels)), labels[idx.test])
+        # cm_data_old <- factor(apply(rf.preds[idx.test, ], 1, which.max), levels =
+        # levels(labels))
 
-      # cm_data_old <- factor(apply(rf.preds[idx.test, ], 1, which.max), levels =
-      # levels(labels))
+        max_labels <- apply(rf.preds[idx.test, ], 1, which.max)
+        cm_data <- factor(sapply(max_labels, function(x) levels(labels)[x]),
+          levels = levels(labels))
 
-      max_labels <- apply(rf.preds[idx.test, ], 1, which.max)
-      cm_data <- factor(sapply(max_labels, function(x) levels(labels)[x]),
-        levels = levels(labels))
+        cm_true_labels <- labels[idx.test]
 
-      cm_true_labels <- labels[idx.test]
+        confM <- caret::confusionMatrix(cm_data, cm_true_labels)
 
-      confM <- caret::confusionMatrix(cm_data, cm_true_labels)
-
-      save(confM, file = paste0(modelsDir, "/", j, "_cutoff_", k, "_rf_reduced_model_stats.RData"))
+        save(confM, file = stats_file_path)
+      }
 
 
       classification_type <- CLASSIFICATION_TYPE

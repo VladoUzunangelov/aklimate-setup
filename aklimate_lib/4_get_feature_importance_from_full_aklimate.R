@@ -24,16 +24,24 @@ message("tasks: ", tasks)
 if (GENERATE_FEATURE_IMPORTANCE_FILES) {
   message("getting feature importance from full models")
   z1 <- foreach(i = iter(tasks)) %dopar% {
-    load(paste0(modelsDir, "/", i, "_junkle_final_model.RData"))
-    if (is.null(jklm)) {
-      message("jklm object is null for ", i)
+
+    full_model_importance_file = paste0(i, "_aklimate_multiclass_feature_importance.tab")
+    full_model_importance_path = paste0(modelsDir, "/", full_model_importance_file)
+
+    if (TRUE %in% (list.files(path=modelsDir) == full_model_importance_file)) {
+      message(paste0("found feature importance file: ", full_model_importance_file))
+    } else {
+      message(paste0("getting feature importance for: ", i))
+      load(paste0(modelsDir, "/", i, "_junkle_final_model.RData"))
+      if (is.null(jklm)) {
+        message("jklm object is null for ", i)
+      }
+      imps <- rank.features.jklm(jklm)
+      if (is.null(imps)) {
+        messge("imps is null for ", i)
+      }
+      write.df(data.frame(importance = imps), "features", full_model_importance_path)
     }
-    imps <- rank.features.jklm(jklm)
-    if (is.null(imps)) {
-      messge("imps is null for ", i)
-    }
-    write.df(data.frame(importance = imps), "features", paste0(modelsDir, "/",
-      i, "_aklimate_multiclass_feature_importance.tab"))
   }
 } else {
   message("skipping generating importance files")
