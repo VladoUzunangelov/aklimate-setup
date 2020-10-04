@@ -245,7 +245,7 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
         rf.preds <- predict(rf, dat[idx.test, rownames(imps)[1:k.adj]])$predictions
         rownames(rf.preds) <- idx.test
 
-        save(rf.preds, preds_file_path)
+        save(rf.preds, file = preds_file_path)
       }
 
       if (TRUE %in% (list.files(path=modelsDir) == stats_file_name)) {
