@@ -277,9 +277,17 @@ junkle_verbose <- TRUE
 
 message("train model")
 
-jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets, junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
+model_file_name = "junkle_fully_trained_model.RData"
+model_file_path = paste0(modelsDir, "/", model_file_name)
 
-save(jklm, file = paste0(modelsDir, "/junkle_fully_trained_model.RData"))
+if (TRUE %in% (list.files(path=modelsDir) == model_file_name)) {
+  message(paste0("loading model from file: ", model_file_path))
+  load(model_file_path)
+} else {
+  jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets, junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
+
+  save(jklm, file = model_file_path)
+}
 
 
 #######################################################
