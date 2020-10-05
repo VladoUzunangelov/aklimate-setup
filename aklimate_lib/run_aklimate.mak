@@ -18,9 +18,9 @@ TARGETS= \
 	\
 
 SUMMARY_TARGETS= \
-	predictions.tar.gz \
-	features.tsv.gz \
-	bacc.tsv \
+	predictions.tsv \
+#	features.tsv.gz \
+#	bacc.tsv \
 	bacc_stats.tsv \
 	cv_test_sample_predictions_full.tsv \
 	sickle_plot.png \
