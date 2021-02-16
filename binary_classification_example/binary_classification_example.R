@@ -42,36 +42,67 @@ write.df <- function(df, row.names.id = "", out.file) {
 message("==> finish load libraries")
 message("==> begin load data")
 
-
 message("==> setup dirs")
 workDir <- getwd()
 
 task.dir <- paste(workDir, "example_results", sep = "/")
 if (!dir.exists(task.dir)) dir.create(task.dir)
 
-num_cv_folds <- 4
-tasks <- 1:num_cv_folds
 # tasks <- c(1)
 
+rdata_filename <- "binary_classification_example_data.rdata"
+example_data_rdata_file <- paste0(workDir, "/", rdata_filename)
 
-message("==> pathways")
-pathways_file <- paste0(workDir, "/pathways.tsv")
-pathways <- readSetList(pathways_file)
+if (TRUE %in% (list.files(path = workDir) == "binary_classification_example_data.rdata")) {
+  message(paste0("==> load data from rdata file: ", example_data_rdata_file))
+  load(example_data_rdata_file)
 
-message("==> labels")
-labels_file <- paste0(workDir, "/labels.tsv")
-labels <- as.matrix(read.delim(labels_file, check.names = F, stringsAsFactors = F,
-  header = T, row.names = 1))
+  pathways <- binary_classification_example_data$pathways
+  labels <- binary_classification_example_data$labels
+  sample_data <- binary_classification_example_data$sample_data
+  splits <- binary_classification_example_data$splits
+  tasks <- 1:(length(splits))
 
-message("==> features")
-sample_data_file <- paste0(workDir, "/sample_data.tsv")
-sample_data <- as.data.frame(read.delim(sample_data_file, check.names = F, stringsAsFactors = F,
-  header = T, row.names = 1))
+} else {
+  message("==> load data from individual data files")
 
-message("==> splits")
-splits <- createFolds(labels[, 1], k = num_cv_folds, list = TRUE, returnTrain = TRUE)
+  message("==> pathways")
+  pathways_file <- paste0(workDir, "/pathways.tsv")
+  pathways <- readSetList(pathways_file)
 
-message("==> finish load data")
+  message("==> labels")
+  labels_file <- paste0(workDir, "/labels.tsv")
+  labels <- as.matrix(read.delim(labels_file, check.names = F, stringsAsFactors = F,
+    header = T, row.names = 1))
+
+  message("==> features")
+  sample_data_file <- paste0(workDir, "/sample_data.tsv")
+  sample_data <- as.data.frame(read.delim(sample_data_file, check.names = F, stringsAsFactors = F,
+    header = T, row.names = 1))
+
+
+  message("==> splits")
+
+  num_cv_folds <- 4
+  tasks <- 1:num_cv_folds
+
+  splits <- createFolds(labels[, 1], k = num_cv_folds, list = TRUE, returnTrain = TRUE)
+
+
+
+  message("==> finish load data")
+
+
+  message("==> generate example data object")
+  binary_classification_example_data <- list(pathways = pathways, labels = labels,
+    sample_data = sample_data, splits = splits, tasks = tasks)
+
+  class(binary_classification_example_data) <- "aklimate_example_data"
+
+  save(binary_classification_example_data, file = example_data_rdata_file)
+
+}
+
 message("==> begin running AKLIMATE")
 
 
