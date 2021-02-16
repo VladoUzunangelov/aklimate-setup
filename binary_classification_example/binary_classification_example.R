@@ -9,10 +9,14 @@ message("using ", ncpus, " CPUs")
 
 
 message("==> use AKLIMATE package")
+
 library(aklimate)
 library(doParallel)
 stopifnot(ncpus > 0, ncpus <= detectCores())
 registerDoParallel(cores = ncpus)
+number_parWorkers <- getDoParWorkers()
+message(paste0("==> number of parWorkers: ", number_parWorkers))
+
 library(caret)
 
 readSetList <- function(file, delim = "\t") {
@@ -72,6 +76,7 @@ suffix <- "_75_25_aklimate_model.RData"
 groups <- list(exp = c("exp"))
 
 dat <- sample_data
+
 
 message("==> tasks")
 message(tasks)
