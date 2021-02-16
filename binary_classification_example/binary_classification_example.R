@@ -1,6 +1,6 @@
 # A toy example for running AKLIMATE on a binary classification task
 
-#vuzunangelov & chrisw 20210210
+# vuzunangelov & chrisw 20210210
 
 message("==> begin load libraries")
 NUMBER_OF_CPUS_TO_USE <- 1
@@ -11,14 +11,19 @@ message("using ", ncpus, " CPUs")
 message("==> use AKLIMATE package")
 
 library(aklimate)
+
+message("==> setup parallelization")
+# Internally, AKLIMATE uses %dopar% for parallelization
 library(doParallel)
 stopifnot(ncpus > 0, ncpus <= detectCores())
 registerDoParallel(cores = ncpus)
 number_parWorkers <- getDoParWorkers()
 message(paste0("==> number of parWorkers: ", number_parWorkers))
 
+message("==> caret for confusion matrix")
 library(caret)
 
+message("==> utility functions")
 readSetList <- function(file, delim = "\t") {
   l <- readLines(file)
   l.fields <- strsplit(l, delim)
@@ -83,10 +88,10 @@ message(tasks)
 
 ###################################################################
 worker.f <- function(tasks) {
-  res <- foreach(i = iter(tasks)) %dopar% {
+  res <- foreach(i = iter(tasks)) %do% {
     set.seed(11 * i, kind = "L'Ecuyer-CMRG")
 
-    message("==> setting parameters")
+    message("==> setting parameters. Some settings used here sacrifice classification performance for speed.")
     message("description of parameters at https://github.com/VladoUzunangelov/aklimate")
 
     idx.train <- rownames(labels)[splits[[i]]]
@@ -111,16 +116,29 @@ worker.f <- function(tasks) {
 
     message("==> train model")
 
+    ta <- Sys.time()
+
     aklimate_model <- aklimate(training_data, datatypes, training_lables, feature_sets,
       global_features_names, rf_params, aklimate_params, store_kernels, verbose)
+
+    tb <- Sys.time()
+
+    t_train <- difftime(tb, ta, units = "secs")
+    message(paste0("training time: ", t_train))
 
     save(aklimate_model, file = paste0(task.dir, "/split_", i, suffix))
     message("==> saved model")
 
     message("==> test model")
+    tc <- Sys.time()
     aklimate_model.preds <- predict(aklimate_model, dat, pathways, NULL, FALSE)$preds
 
+    td <- Sys.time()
 
+    t_test <- difftime(td, tc, units = "secs")
+    message(paste0("testing time: ", t_test))
+
+    message(paste0("train + test time: ", t_train + t_test))
 
     factor.test <- as.factor(labels[idx.test, 1])
     factor.preds <- aklimate_model.preds[, 2]
@@ -152,7 +170,7 @@ t0 <- Sys.time()
 results <- lapply(tasks, worker.f)
 t1 <- Sys.time()
 message("==> got results object")
-dt <- t1 - t0
+dt <- difftime(t1, t0, units = "secs")
 message(dt)
 dt
 
