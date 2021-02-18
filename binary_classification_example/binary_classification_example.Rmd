@@ -1,0 +1,151 @@
+---
+output: html_document
+---
+
+vuzunangelov & chrisw 20210210
+
+# A Toy Example For Running AKLIMATE On A Binary Classification Task
+
+This is an example of how to run AKLIMATE on a binary classification task. Using this example, you can check if your installation of the AKLIMATE package is working. It also gives an example of how to set up an AKLIMATE experiment. Visit [the AKLIMATE github repo](https://github.com/VladoUzunangelov/aklimate) for more description of AKLIMATE parameters and options. A detailed description of AKLIMATE is presented in:
+
+1- V. Uzunangelov, C. K. Wong, and J. Stuart. Highly Accurate Cancer Phenotype Prediction with AKLIMATE, a Stacked Kernel Learner Integrating Multimodal Genomic Data and Pathway Knowledge. [bioRxiv](https://www.biorxiv.org/content/10.1101/2020.07.15.205575v1), July 2020.
+
+## Loading Libraries and Setting Up Multi-Core Processing
+
+Load the `aklimate` library and register 1 CPU core with the `doParallel` library. `caret` will be used to compute prediction performance from the test results.
+
+```
+library(aklimate)
+library(doParallel)
+registerDoParallel(cores = 1)
+library(caret)
+```
+
+## Loading Data
+
+1- `task.dir` specifies a directory for writing files.
+
+2- Load the data:
+
+  + `pathways` is where AKLIMATE will look for feature sets. These are named lists of features.
+  + `labels` is where the samples' true labels are found.
+  + `sample_data` is where AKLIMATE will look for values of each sample's local features. For simplicity, this example does not use any global features.
+  + `splits` is where train-test splits are specified. The example data uses one complete round of 4-fold cross-validation.
+  + `tasks` specifies the indices of the splits to run. In this example, all splits will be run.
+
+```
+task.dir <- paste(getwd(), "example_results", sep = "/")
+if (!dir.exists(task.dir)) dir.create(task.dir)
+
+pathways <- binary_classification_example_data$pathways
+labels <- binary_classification_example_data$labels
+sample_data <- binary_classification_example_data$sample_data
+splits <- binary_classification_example_data$splits
+tasks <- 1:(length(splits))
+```
+
+## Set Up AKLIMATE Experiments
+
+* `suffix` is used when writing trained AKLIMATE models to file.
+* `datatypes` specifies which datatypes AKLIMATE will use. Here, `exp` corresponds to the `_exp` suffix on the feature IDs in `sample_data`.
+* `worker.f` defines a function that performs the following for a task:
+  + Train an AKLIMATE model using a call to `aklimate()`. Visit [the AKLIMATE github repo](https://github.com/VladoUzunangelov/aklimate) for descriptions of AKLIMATE parameters and options.
+  + Test using the trained AKLIMATE model by calling `predict()`
+  + Compute test performance using `ROCR` and `caret`.
+
+```
+suffix <- "_75_25_aklimate_model.RData"
+
+datatypes <- list(exp = c("exp"))
+
+worker.f <- function(tasks) {
+  res <- foreach(i = iter(tasks)) %do% {
+    set.seed(11 * i, kind = "L'Ecuyer-CMRG")
+
+    idx.train <- rownames(labels)[splits[[i]]]
+    idx.test <- setdiff(rownames(labels), idx.train)
+
+    training_data <- sample_data[idx.train, ]
+    training_lables <- labels[idx.train, 1]
+    feature_sets <- pathways
+    global_features_names <- NULL
+
+    rf_params <- list(ttype = "binary", bin.perf = "bacc", regression.q = 0.05,
+      importance = "impurity", min.nfeat = 15, ntree = 2000, sample.frac = 0.5,
+      replace = FALSE, weights = NULL, oob.cv = data.frame(min.node.prop = 0.01,
+        mtry.prop = 0.25, ntree = 500))
+
+    aklimate_params <- list(topn = 5, subsetCV = TRUE, lamb = c(-15, 0), cvlen = 20,
+      celnet = c(0.01, 0.002), type = "probability")
+
+    store_kernels <- FALSE
+    verbose <- TRUE
+
+    message("==> train model")
+
+    aklimate_model <- aklimate(training_data, datatypes, training_lables, feature_sets,
+      global_features_names, rf_params, aklimate_params, store_kernels, verbose)
+
+    save(aklimate_model, file = paste0(task.dir, "/split_", i, suffix))
+    message("==> saved model")
+
+    message("==> test model")
+    
+    aklimate_model.preds <- predict(aklimate_model, sample_data, pathways, NULL, FALSE)$preds
+
+    factor.test <- as.factor(labels[idx.test, 1])
+    factor.preds <- aklimate_model.preds[, 2]
+    factor.preds[aklimate_model.preds[, 2] < 0.5] <- colnames(aklimate_model.preds)[1]
+    factor.preds[aklimate_model.preds[, 2] > 0.5] <- colnames(aklimate_model.preds)[2]
+    factor.preds <- factor(factor.preds, levels = levels(factor.test))
+    confM <- confusionMatrix(factor.preds, factor.test)
+    rocr.pred <- ROCR::prediction(aklimate_model.preds[, 2], labels[idx.test,
+      1])
+    auc <- ROCR::performance(rocr.pred, "auc")@y.values[[1]]
+
+    save(aklimate_model.preds, file = paste0(task.dir, "/split_", i, "_predictions.RData"))
+    save(confM, rocr.pred, auc, file = paste0(task.dir, "/split_", i, "_stats.RData"))
+
+    message("==> saved test results")
+
+    gc()
+
+    return(list(auc = auc))
+  }
+
+  return(res)
+}
+```
+
+## Run AKLIMATE Experiments
+
+The `worker.f` function is called on each task in `tasks`.
+
+```
+results <- lapply(tasks, worker.f)
+
+results <- unlist(results, recursive = FALSE)
+```
+
+## Compute Prediction Performance
+
+The prediction performance metrics are written to files.
+
+```
+pred_stats <- sapply(results, function(x) x[[1]])
+names(pred_stats) <- as.character(tasks)
+
+splits_auc_df <- data.frame(auc = pred_stats)
+colnames(splits_auc_df)[1] <- "split"
+write.df(data.frame(auc = pred_stats), "split", paste0(task.dir, "/splits_auc.tab"))
+write.table(splits_auc_df, file = paste0(task.dir, "/splits_auc.tab"), quote = FALSE, append = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+
+pred_stats <- foreach(i = tasks, .combine = c) %do% {
+  load(paste0(task.dir, "/split_", i, "_stats.RData"))
+  auc
+}
+names(pred_stats) <- tasks
+```
+
+
