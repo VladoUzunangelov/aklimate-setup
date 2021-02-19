@@ -23,7 +23,7 @@ dat <- dat[, -1]
 message("meth mapper")
 
 saved_meth_mapper_file <- "meth_mapper_hm450_20200416.RData"
-found_meth_mapper_file <- TRUE %in% (list.files(path=homeDir) == saved_meth_mapper_file)
+found_meth_mapper_file <- TRUE %in% (list.files(path = homeDir) == saved_meth_mapper_file)
 
 saved_meth_mapper_file <- paste0(homeDir, "/meth_mapper_hm450_20200416.RData")
 if (found_meth_mapper_file) {
@@ -98,18 +98,16 @@ message("load pathways")
 # p1 <- readSetList(paste0(homeDir, '/pathcomm_pathways_cleaned')) p1 <-
 # p1[!grepl('[[:digit:]]_SMPDB$|Z_SMPDB$', names(p1))]
 
-# using individual pathway files
-# p1 <- readSetList(paste0(homeDir, "/pathcomm_pathways_cleaned_non_redundant_names.tsv"))
-# p2 <- readSetList(paste0(homeDir, "/genomic_position_sets.listt"))
-# p3 <- readSetList(paste0(homeDir, "/genesigdb_human.tab"))
-# p4 <- readSetList(paste0(homeDir, "/msigdb_c2_c5_no_c2_cp.tab"))
-#
-# pathways <- c(p1, p2, p3, p4)
+# using individual pathway files p1 <- readSetList(paste0(homeDir,
+# '/pathcomm_pathways_cleaned_non_redundant_names.tsv')) p2 <-
+# readSetList(paste0(homeDir, '/genomic_position_sets.listt')) p3 <-
+# readSetList(paste0(homeDir, '/genesigdb_human.tab')) p4 <-
+# readSetList(paste0(homeDir, '/msigdb_c2_c5_no_c2_cp.tab')) pathways <- c(p1,
+# p2, p3, p4)
 
-# using one file of collected pathways.
-# The names of these pathways have been mapped to simple names.
-# This was done to avoid the continued problem of name collisions and the like.
-# collected_pathways_name_mapped.tsv
+# using one file of collected pathways.  The names of these pathways have been
+# mapped to simple names.  This was done to avoid the continued problem of name
+# collisions and the like.  collected_pathways_name_mapped.tsv
 p_collected <- readSetList(paste0(homeDir, "/collected_pathways_name_mapped.tsv"))
 pathways <- c(p_collected)
 
@@ -117,7 +115,8 @@ max_size_of_pathways <- 1000
 pathways <- pathways[sapply(pathways, length) < max_size_of_pathways]
 
 # need to load the name mappings in order to map back to original pathway names
-p_name_mapping <- read.csv(file=paste0(homeDir, "/pathway_name_mapping.tsv"), header = FALSE, sep = "\t", col.names = c("p_id", "p_name"))
+p_name_mapping <- read.csv(file = paste0(homeDir, "/pathway_name_mapping.tsv"), header = FALSE,
+  sep = "\t", col.names = c("p_id", "p_name"))
 
 message("sanitize pathway names")
 
@@ -142,7 +141,8 @@ if (num_labels == 2) {
   stopifnot(FALSE)
 }
 
-message(paste0("Detected ", num_labels, " labels. Setting CLASSIFICATION_TYPE to ", CLASSIFICATION_TYPE))
+message(paste0("Detected ", num_labels, " labels. Setting CLASSIFICATION_TYPE to ",
+  CLASSIFICATION_TYPE))
 
 message("load CV fold splits")
 
@@ -170,32 +170,36 @@ worker.f <- function(tasks) {
     stats_preds_file_name = paste0(i, "_junkle_final_model_stats_preds.RData")
     stats_preds_file_path = paste0(workDir, "/", stats_preds_file_name)
 
-    if (TRUE %in% (list.files(path=workDir) == stats_preds_file_name)) {
+    if (TRUE %in% (list.files(path = workDir) == stats_preds_file_name)) {
       message(paste0("loading stats_preds from file: ", stats_preds_file_path))
       load(stats_preds_file_path)
     } else {
       set.seed(seeds[i], kind = "L'Ecuyer-CMRG")
 
-      # description of AKLIMATE params is available at: https://github.com/VladoUzunangelov/aklimate
+      # description of AKLIMATE params is available at:
+      # https://github.com/VladoUzunangelov/aklimate
 
       idx.train <- rownames(splits)[splits[, i] == 0]
       idx.test <- setdiff(rownames(splits), idx.train)
 
-    	# Set nfold based on the size of the smallest class.
-    	# We encountered situations where the nfold was larger than the size of smallest class.
-    	# Best solution is to remove the tiny class, but here we attempt to keep all classes.
-    	default_nfold <- 5
+      message(paste0("==> number training samples: ", length(idx.train)))
+      message(paste0("==> number testing samples: ", length(idx.test)))
+
+      # Set nfold based on the size of the smallest class.  We encountered situations
+      # where the nfold was larger than the size of smallest class.  Best solution is
+      # to remove the tiny class, but here we attempt to keep all classes.
+      default_nfold <- 5
       num_folds <- default_nfold
       for (class in levels(labels)) {
         training_labels <- labels[idx.train]
-        training_set_for_class <- (training_labels)[training_labels[] == class]
+        training_set_for_class <- (training_labels)[training_labels[] ==
+          class]
         num_folds <- min(length(training_set_for_class), num_folds)
       }
       message("setting num_folds = ", num_folds)
 
 
-    # classification_type <- "binary"
-    # classification_type <- "multiclass"
+      # classification_type <- 'binary' classification_type <- 'multiclass'
       classification_type <- CLASSIFICATION_TYPE
       message(paste0(i, " classification_type: ", classification_type))
 
@@ -209,21 +213,23 @@ worker.f <- function(tasks) {
       junkle_feature_sets <- pathways
       junkle_always_add <- NULL
 
-      rf_params <- list(ttype = classification_type, bin.perf = c("bacc"), importance = "permutation",
-        min.nfeat = 15, ntree = 1000, sample.frac = 0.5, replace = FALSE, weights = NULL,
-        oob.cv = data.frame(min.node.prop = 0.01, mtry.prop = 0.25, ntree = 500))
+      rf_params <- list(ttype = classification_type, bin.perf = c("bacc"),
+        importance = "permutation", min.nfeat = 15, ntree = 1000, sample.frac = 0.5,
+        replace = FALSE, weights = NULL, oob.cv = data.frame(min.node.prop = 0.01,
+          mtry.prop = 0.25, ntree = 500))
 
-      # common warning message:
-      # The duality gap has been closing very slowly indicating slow convergence.You should examine your kernels for multicollinearity and or change regularization parameters.Alternatively you can increase minIter or decrease tolMinIter.
+      # common warning message: The duality gap has been closing very slowly indicating
+      # slow convergence.You should examine your kernels for multicollinearity and or
+      # change regularization parameters.Alternatively you can increase minIter or
+      # decrease tolMinIter.
 
-      # MKL solver is converging very slowly.
-      # address this by using different range of regularization parameter tuning as below.
-      # The values are log2 scale, so negative values means very close to zero, i.e. low regularization
+      # MKL solver is converging very slowly.  address this by using different range of
+      # regularization parameter tuning as below.  The values are log2 scale, so
+      # negative values means very close to zero, i.e. low regularization
 
-      # small number underflow with rcpp might cause error like this:
-      # Error in { : task 8 failed - "NA/NaN argument"
-      # and also many slow convergence messages
-      # changing lamb range may correct this
+      # small number underflow with rcpp might cause error like this: Error in { : task
+      # 8 failed - 'NA/NaN argument' and also many slow convergence messages changing
+      # lamb range may correct this
       junkle_lamb = c(-5, 0)
       junkle_lamb = c(-15, 0)
 
@@ -233,55 +239,78 @@ worker.f <- function(tasks) {
       message("using lamb:")
       message(paste0(" ", junkle_lamb))
 
-      junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = junkle_lamb, cvlen = 200, type = "probability")
+      junkle_params <- list(topn = 5, nfold = num_folds, subsetCV = TRUE, lamb = junkle_lamb,
+        cvlen = 200, type = "probability")
 
       junkle_store_kernels <- FALSE
       junkle_verbose <- TRUE
 
 
       message(paste0(i, " train model"))
-      # train AKLIMATE model
-      # works with Spicer.R with md5sum: 71b8fbb55747b623d565960ff7737f73
-      # does not work with Spicer.R with md5sum: c1fffbc913a9a82571d6a00116c6dadd
-      # jklm <- junkle(dat[idx.train, ], suffs, labels[idx.train], pathways, NULL, rf_params,
-      #   junkle_params, FALSE, TRUE)
+      # train AKLIMATE model works with Spicer.R with md5sum:
+      # 71b8fbb55747b623d565960ff7737f73 does not work with Spicer.R with md5sum:
+      # c1fffbc913a9a82571d6a00116c6dadd jklm <- junkle(dat[idx.train, ], suffs,
+      # labels[idx.train], pathways, NULL, rf_params, junkle_params, FALSE, TRUE)
 
       model_filename = paste0(i, "_junkle_final_model.RData")
       model_file_path = paste0(workDir, "/", model_filename)
 
-      if (TRUE %in% (list.files(path=workDir) == model_filename)) {
+      if (TRUE %in% (list.files(path = workDir) == model_filename)) {
         message(paste0("loading model from file: ", model_file_path))
         load(model_file_path)
+        t_train <- 0
       } else {
-        jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels, junkle_feature_sets,
-          junkle_always_add, rf_params, junkle_params, junkle_store_kernels, junkle_verbose)
 
-        message(paste0("model training completed. saving model to file: ", model_file_path))
+        message(paste0("train model for ", i))
+        ta <- Sys.time()
+
+        jklm <- junkle(junkle_training_data, junkle_datatypes, junkle_training_labels,
+          junkle_feature_sets, junkle_always_add, rf_params, junkle_params,
+          junkle_store_kernels, junkle_verbose)
+
+        tb <- Sys.time()
+
+        t_train <- difftime(tb, ta, units = "secs")
+        message(paste0("training time: ", t_train))
+
+        message(paste0("model training completed. saving model to file: ",
+          model_file_path))
         save(jklm, file = model_file_path)
       }
 
 
       message(paste0(i, " set params for predictions"))
-      # jklobj, dat, fsets, kernels=NULL, store.kernels=FALSE
-      # junkle_object <- jklm
+      # jklobj, dat, fsets, kernels=NULL, store.kernels=FALSE junkle_object <- jklm
       junkle_predict_data <- dat[c(idx.train, idx.test), ]
       # junkle_feature_sets <- pathways
       junkle_kernels <- NULL
       # junkle_store_kernels <- FALSE
 
-      # jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways, NULL,
-      #   FALSE)$preds
+      # jklm.preds <- predict.junkle(jklm, dat[c(idx.train, idx.test), ], pathways,
+      # NULL, FALSE)$preds
 
 
       message(paste0(i, " make predictions"))
+
+      tc <- Sys.time()
       jklm.preds <- predict.junkle(jklm, junkle_predict_data, junkle_feature_sets,
         junkle_kernels, junkle_store_kernels)$preds
+
+      td <- Sys.time()
+
+      t_test <- difftime(td, tc, units = "secs")
+      message(paste0("testing time: ", t_test))
+
+      if (t_train != 0) {
+        message(paste0("train + test time: ", t_train + t_test))
+      }
 
       message(paste0(i, " collect results"))
 
       jklm.preds <- apply(jklm.preds, 1, function(x) colnames(jklm.preds)[which.max(x)])
 
-      confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)), labels[idx.test])
+      confM <- caret::confusionMatrix(factor(jklm.preds, levels = levels(labels)),
+        labels[idx.test])
 
       # get BACC results
       if (classification_type == "binary") {
@@ -300,7 +329,7 @@ worker.f <- function(tasks) {
       save(jklm.preds, confM, bacc, file = paste0(workDir, "/", i, "_junkle_final_model_stats_preds.RData"))
     }
     return(bacc)
-  } # end of task
+  }  # end of task
 
   return(res)
-} # end of worker.f
+}  # end of worker.f

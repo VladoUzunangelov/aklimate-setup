@@ -12,7 +12,18 @@ message(run_tasks)
 
 # stopifnot(FALSE)
 
+
+message("==> train/test models")
+t0 <- Sys.time()
+
 results <- worker.f(run_tasks)
+
+t1 <- Sys.time()
+message("==> got results object")
+dt <- difftime(t1, t0, units = "secs")
+message(paste0("experiment run time (secs): ", dt))
+
+
 names(results) <- run_tasks
 
 results <- unlist(results)
