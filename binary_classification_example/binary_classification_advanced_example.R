@@ -130,7 +130,7 @@ worker.f <- function(tasks) {
 
     training_data <- dat[idx.train, ]
     datatypes <- groups
-    training_lables <- labels[idx.train, 1]
+    training_labels <- labels[idx.train, 1]
     feature_sets <- pathways
     global_features_names <- NULL
 
@@ -149,7 +149,7 @@ worker.f <- function(tasks) {
 
     ta <- Sys.time()
 
-    aklimate_model <- aklimate(training_data, datatypes, training_lables, feature_sets,
+    aklimate_model <- aklimate(training_data, datatypes, training_labels, feature_sets,
       global_features_names, rf_params, aklimate_params, store_kernels, verbose)
 
     tb <- Sys.time()

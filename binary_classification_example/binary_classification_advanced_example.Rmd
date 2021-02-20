@@ -4,9 +4,9 @@ output: html_document
 
 vuzunangelov & chrisw 20210210
 
-# A Toy Example For Running AKLIMATE On A Binary Classification Task
+# An Advanced Example For Running AKLIMATE On A Binary Classification Task
 
-This is an example of how to run AKLIMATE on a binary classification task. Using this example, you can check if your installation of the AKLIMATE package is working. It also gives an example of how to set up an AKLIMATE experiment. Visit [the AKLIMATE github repo](https://github.com/VladoUzunangelov/aklimate) for more description of AKLIMATE parameters and options. A detailed description of AKLIMATE is presented in:
+This is an example of how to run AKLIMATE on a binary classification task. Using this example, you can check if your installation of the AKLIMATE package is working. It also gives an example of how to set up a 4-fold cross-validation experiment. Visit [the AKLIMATE github repo](https://github.com/VladoUzunangelov/aklimate) for more description of AKLIMATE parameters and options. A detailed description of AKLIMATE is presented in:
 
 1- V. Uzunangelov, C. K. Wong, and J. Stuart. Highly Accurate Cancer Phenotype Prediction with AKLIMATE, a Stacked Kernel Learner Integrating Multimodal Genomic Data and Pathway Knowledge. [bioRxiv](https://www.biorxiv.org/content/10.1101/2020.07.15.205575v1), July 2020.
 
@@ -25,7 +25,9 @@ library(caret)
 
 1- `task.dir` specifies a directory for writing files.
 
-2- Load the data:
+2- Load an object from file, "binary_classification_example_data.rdata".
+
+3- The following data is available in `binary_classification_example_data`:
 
   + `pathways` is where AKLIMATE will look for feature sets. These are named lists of features.
   + `labels` is where the samples' true labels are found.
@@ -36,6 +38,8 @@ library(caret)
 ```
 task.dir <- paste(getwd(), "example_results", sep = "/")
 if (!dir.exists(task.dir)) dir.create(task.dir)
+
+load("binary_classification_example_data.rdata")
 
 pathways <- binary_classification_example_data$pathways
 labels <- binary_classification_example_data$labels
