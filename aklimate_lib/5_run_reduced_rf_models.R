@@ -215,7 +215,7 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
       model_file_path = paste0(modelsDir, "/", model_file_name)
       feature_importance_file_path = paste0(modelsDir, "/", feature_importance_file_name)
 
-	  REDUCED_RF_FEATURE_IMPORTANCE_FILE_NAME = paste0(j, "_cutoff_", k, "_rf_reduced_model_feature_importance.RData")
+	  REDUCED_RF_FEATURE_IMPORTANCE_FILE_NAME = paste0(j, "_cutoff_", k, "_rf_reduced_model_feature_importance.tsv")
 	  REDUCED_RF_FEATURE_IMPORTANCE_FILE_PATH = paste0(modelsDir, "/", REDUCED_RF_FEATURE_IMPORTANCE_FILE_NAME)
 
       idx.train <- rownames(splits)[splits[, j] == 0]
