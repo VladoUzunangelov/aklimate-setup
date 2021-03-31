@@ -215,6 +215,9 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
       model_file_path = paste0(modelsDir, "/", model_file_name)
       feature_importance_file_path = paste0(modelsDir, "/", feature_importance_file_name)
 
+	  REDUCED_RF_FEATURE_IMPORTANCE_FILE_NAME = paste0(j, "_cutoff_", k, "_rf_reduced_model_feature_importance.RData")
+	  REDUCED_RF_FEATURE_IMPORTANCE_FILE_PATH = paste0(modelsDir, "/", REDUCED_RF_FEATURE_IMPORTANCE_FILE_NAME)
+
       idx.train <- rownames(splits)[splits[, j] == 0]
       idx.test <- setdiff(rownames(splits), idx.train)
 
@@ -233,7 +236,7 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
           always.split.variables = NULL, classification = TRUE, sample.fraction = 0.5,
           num.trees = 3000, mtry = ceiling(k.adj/5), min.node.size = 1, case.weights = NULL,
           num.threads = 3, probability = TRUE, respect.unordered.factors = FALSE,
-          importance = "none", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
+          importance = "permutation", write.forest = TRUE, keep.inbag = TRUE, replace = FALSE)
 
         save(rf, file = model_file_path)
       }
@@ -283,6 +286,10 @@ acc.reduced <- foreach(i = iter(reps.list), .combine = rbind) %dopar% {
           CLASSIFICATION_TYPE))
         stopifnot(FALSE)
       }
+	  
+	  message("write feature importance from reduced RF model to file")
+	  colnames<-paste0("featureID	feature_importance_score_for_", j, "_cutoff_", k)
+	  write.table(rf$variable.importance, file=REDUCED_RF_FEATURE_IMPORTANCE_FILE_PATH, quote=FALSE, sep="\t", col.names=c(colnames))
 
       ## mean(unname(confM$overall['Accuracy']))
     }
