@@ -24,6 +24,10 @@ main <- function(argv) {
   message(paste0("cohort: ", cohort))
   message(paste0("sample_data_file: ", sample_data_file))
 
+  sample_data_dir <- dirname(sample_data_file)
+  predictions_file_name <- paste0(cohort, "_predictions_for_", basename(sample_data_file))
+  predictions_file_path <- paste0(sample_data_dir, "/", predictions_file_name)
+
   data_dir <- "./reduced_model_input"
   # sample_data_file <- paste0(data_dir, '/', cohort, '_combined_matrix.tsv')
 
@@ -103,11 +107,10 @@ main <- function(argv) {
 
   predictions_final_labels_and_scores <- cbind(max_labels, predictions)
 
-  predictions_file <- "predictions.tsv"
-  write.table(predictions_final_labels_and_scores, file = predictions_file, row.names = TRUE,
-    col.names = NA, sep = "\t", quote = FALSE)
+  write.table(predictions_final_labels_and_scores, file = predictions_file_path,
+    row.names = TRUE, col.names = NA, sep = "\t", quote = FALSE)
 
-  message(paste0("Done! Predictions saved to: ", predictions_file))
+  message(paste0("Done! Predictions saved to: ", predictions_file_path))
 }
 
 
