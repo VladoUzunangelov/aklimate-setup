@@ -199,6 +199,8 @@ worker.f <- function(tasks) {
       for (class in levels(labels)) {
         training_labels <- labels[idx.train]
         training_set_for_class <- (training_labels)[training_labels[] == class]
+        size_training_set_for_class <- length(training_set_for_class)
+        message(paste0("==> size_training_set_for_class ", class, " ", size_training_set_for_class))
         num_folds <- min(length(training_set_for_class), num_folds)
       }
       message("setting num_folds = ", num_folds)
