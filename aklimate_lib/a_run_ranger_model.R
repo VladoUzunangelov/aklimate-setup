@@ -202,10 +202,12 @@ worker.f <- function(tasks) {
     stats_file_name = paste0(task, "_rf_model_stats.RData")
     preds_file_name = paste0(task, "_rf_model_predictions.RData")
     model_file_name = paste0(task, "_rf_model.RData")
+    feature_importance_file_name = paste0(task, "_rf_feature_importance.tsv")
 
     stats_file_path = paste0(modelsDir, "/", stats_file_name)
     preds_file_path = paste0(modelsDir, "/", preds_file_name)
     model_file_path = paste0(modelsDir, "/", model_file_name)
+    feature_importance_file_path = paste0(modelsDir, "/", feature_importance_file_name)
 
     idx.train <- rownames(splits)[splits[, task] == 0]
     idx.test <- setdiff(rownames(splits), idx.train)
@@ -236,6 +238,16 @@ worker.f <- function(tasks) {
       save(rf, file = model_file_path)
     }
 
+
+    if (TRUE %in% (list.files(path = modelsDir) == feature_importance_file_name)) {
+      message(paste0("found feature importance file: ", feature_importance_file_path))
+    } else {
+      feature_importance <- rf$variable.importance
+      write.df(data.frame(importance = sort(feature_importance, decreasing = TRUE)),
+        "features", feature_importance_file_path)
+    }
+
+
     if (TRUE %in% (list.files(path = modelsDir) == preds_file_name)) {
       message(paste0("loading preds from file: ", preds_file_path))
       load(preds_file_path)
@@ -248,6 +260,7 @@ worker.f <- function(tasks) {
 
       save(rf.preds, file = preds_file_path)
     }
+
 
     if (TRUE %in% (list.files(path = modelsDir) == stats_file_name)) {
       message(paste0("loading stats from file: ", stats_file_path))
