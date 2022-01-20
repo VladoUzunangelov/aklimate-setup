@@ -18,9 +18,11 @@ message("using ", ncpus, " CPUs")
 
 cohortDir <- getwd()
 featureSetsDir <- paste0(cohortDir, "/p_store_files")
-modelsDir <- paste0(cohortDir, "/models")
+modelsDir <- paste0(cohortDir, "/rf_models")
 dataDir <- paste0(cohortDir, "/data")
 homeDir <- featureSetsDir
+
+dir.create(modelsDir)
 
 ############################################################################
 
