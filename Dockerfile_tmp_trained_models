@@ -1,0 +1,13 @@
+#chrisw 20210714
+#build an image for scoring sample using trained AKLIMATE models
+
+FROM stuartlab/aklimate:dev_spicer
+
+RUN ["mkdir", "-p", "/aklimate/"]
+COPY ./aklimate_lib/10_predict_samples_using_reduced_models.R /aklimate
+COPY ./fully_trained_models_20220406 /aklimate
+COPY ./p_store_files/meth_mapper_hm450_20200416.RData /aklimate
+
+COPY ./aklimate_lib/predict.sh /aklimate
+
+ENTRYPOINT ["/aklimate/predict.sh"]

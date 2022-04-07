@@ -1,4 +1,5 @@
 #!/usr/bin/Rscript
+# 20220407 chris
 # 20210708 chris
 
 # usage, options and doc goes here
@@ -8,8 +9,14 @@ Usage:
 Example:
 \tRscript 10_predict_samples_using_reduced_models.R arg1 arg2
 Options:
-\targ1 cohort
-\targ2 sample_data")
+\targ1 cohort (ACC, BLCA, BRCA, CESC, COADREAD, ESCC, GEA, HNSC, KIRCKICH, KIRP, LGGGBM, LIHCCHOL, LUAD, LUSC, MESO, OV, PAAD, PCPG, PRAD, SARC, SKCM, TGCT, THCA, THYM, UCEC, UVM)
+\targ2 datatype (GEXP, CNVR, METH, MULTI, TOP)
+\targ3 sample_data (Tab-separated matrix file. Each row is a sample. Each column is a feature.)")
+
+# The dev environment used:
+# R version 3.4.4 (2018-03-15)
+# ranger_0.11.2
+# doParallel_1.0.14
 
 library(doParallel)
 registerDoParallel(cores = 1)
@@ -19,30 +26,36 @@ library(ranger)
 
 main <- function(argv) {
   cohort <- argv[1]
-  sample_data_file <- argv[2]
+  datatype <- argv[2]
+  sample_data_file <- argv[3]
 
   message(paste0("cohort: ", cohort))
+  message(paste0("datatype: ", datatype))
   message(paste0("sample_data_file: ", sample_data_file))
 
+  cohort_datatype <- toupper(paste0(cohort, "_", datatype))
+
   sample_data_dir <- dirname(sample_data_file)
-  predictions_file_name <- paste0(cohort, "_predictions_for_", basename(sample_data_file))
+  predictions_file_name <- paste0(cohort_datatype, "_predictions_for_", basename(sample_data_file))
   predictions_file_path <- paste0(sample_data_dir, "/", predictions_file_name)
 
-  data_dir <- "./reduced_model_input"
+  # data_dir is where R will find model RData files.
+  data_dir <- "/aklimate"
   # sample_data_file <- paste0(data_dir, '/', cohort, '_combined_matrix.tsv')
 
-  file_search_string <- paste0(cohort, "_*_junkle_fully_trained_reduced_model.RData")
-  glob_files <- Sys.glob(file.path(".", "models", file_search_string))
+  # file_search_string <- paste0(cohort, "_*_junkle_fully_trained_reduced_model.RData")
+  file_search_string <- paste0(cohort_datatype, "_rf_reduced_model.RData")
+  glob_files <- Sys.glob(file.path(data_dir, file_search_string))
 
   num_results <- length(glob_files)
 
   if (num_results == 0) {
-    message("ERROR: did not find any model files")
+    message(paste0("ERROR: did not find any model file for ", cohort_datatype))
   } else if (num_results == 1) {
-    message(paste0("found a model file for predicting subtypes for ", cohort))
+    message(paste0("found a model file for predicting subtypes for ", cohort_datatype))
     model_file_path <- glob_files[1]
   } else if (num_results > 1) {
-    message("ERROR: found multiple model files")
+    message(paste0("ERROR: found multiple model files for ", cohort_datatype))
   }
 
   stopifnot(exists("model_file_path"))
